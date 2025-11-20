@@ -23,7 +23,7 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
-      path: '/recording',
+      path: '/recording/:noteId?',
       name: 'recording',
       component: () => import('@/views/RecordingView.vue'),
       meta: { requiresAuth: true }

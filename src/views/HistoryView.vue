@@ -254,6 +254,9 @@ const isClickable = (status: NoteStatus): boolean => {
 const handleNoteClick = async (note: { id: string; status: NoteStatus; githubIssueUrl?: string }) => {
   switch (note.status) {
     case NoteStatus.RECORDED:
+      // Go back to recording view to listen and process
+      router.push(`/recording/${note.id}`)
+      break
     case NoteStatus.ERROR:
       // Retry processing
       await retryNote(note.id)

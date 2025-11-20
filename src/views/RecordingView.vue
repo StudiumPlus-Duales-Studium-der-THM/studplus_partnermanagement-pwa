@@ -207,7 +207,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useAudioRecorder } from '@/composables/useAudioRecorder'
 import { useProcessing } from '@/composables/useProcessing'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
@@ -216,6 +216,7 @@ import { useNotificationStore } from '@/stores/notification'
 import { RECORDING_HINTS } from '@/utils/constants'
 
 const router = useRouter()
+const route = useRoute()
 const voiceNotesStore = useVoiceNotesStore()
 const settingsStore = useSettingsStore()
 const notificationStore = useNotificationStore()
@@ -252,9 +253,27 @@ const updateOnlineStatus = () => {
   isOnline.value = navigator.onLine
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
+
+  // Check if we're loading an existing recording
+  const noteId = route.params.noteId as string | undefined
+  if (noteId) {
+    try {
+      const note = await voiceNotesStore.getNoteById(noteId)
+      if (note && note.audioBlob) {
+        // Load the saved recording
+        audioBlob.value = note.audioBlob
+        audioBlobUrl.value = note.audioBlobUrl || URL.createObjectURL(note.audioBlob)
+        isSaved.value = true // Already saved
+        recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2) // Rough estimate
+      }
+    } catch (error) {
+      console.error('Failed to load note:', error)
+      notificationStore.error('Aufnahme konnte nicht geladen werden')
+    }
+  }
 })
 
 onUnmounted(() => {
