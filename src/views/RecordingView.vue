@@ -244,6 +244,7 @@ const {
 const showHints = ref(settingsStore.showRecordingHints ? 0 : undefined)
 const isOnline = ref(navigator.onLine)
 const waveformCanvas = ref<HTMLCanvasElement | null>(null)
+const isSaved = ref(false) // Track if recording has been saved
 let animationId: number | null = null
 
 // Online/offline status
@@ -256,11 +257,22 @@ onMounted(() => {
   window.addEventListener('offline', updateOnlineStatus)
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
   window.removeEventListener('online', updateOnlineStatus)
   window.removeEventListener('offline', updateOnlineStatus)
   if (animationId) {
     cancelAnimationFrame(animationId)
+  }
+
+  // Save recording before leaving the view if it hasn't been processed
+  // If there's an audioBlob that hasn't been saved yet, save it automatically
+  if (audioBlob.value && !isProcessing.value && !isSaved.value) {
+    try {
+      await voiceNotesStore.createNote(audioBlob.value)
+      console.log('Unsaved recording automatically saved before leaving view')
+    } catch (error) {
+      console.error('Failed to save recording before leaving view:', error)
+    }
   }
 })
 
@@ -333,10 +345,12 @@ const stopRecording = () => {
 
 const retakeRecording = () => {
   reset()
+  isSaved.value = false
 }
 
 const deleteRecording = () => {
   reset()
+  isSaved.value = false
   notificationStore.info('Aufnahme gelöscht')
 }
 
@@ -346,6 +360,7 @@ const processRecording = async () => {
   if (!isOnline.value) {
     // Save for later processing
     await voiceNotesStore.createNote(audioBlob.value)
+    isSaved.value = true
     notificationStore.warning('Notiz gespeichert. Wird bei Internetverbindung verarbeitet.')
     router.push('/history')
     return
@@ -353,6 +368,7 @@ const processRecording = async () => {
 
   // Create note and process
   const noteId = await voiceNotesStore.createNote(audioBlob.value)
+  isSaved.value = true
   const success = await processNote(noteId)
 
   if (success) {
