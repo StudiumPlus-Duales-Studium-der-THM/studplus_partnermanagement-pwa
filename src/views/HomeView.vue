@@ -1,9 +1,15 @@
 <template>
   <v-app>
     <v-app-bar color="primary" density="compact">
-      <v-app-bar-title>Partner-Notizen</v-app-bar-title>
+      <img
+        src="/studium-plus-logo.png"
+        alt="Studium Plus"
+        style="height: 24px; filter: brightness(0) invert(1);"
+        class="mr-2 ml-4"
+      />
+      <v-app-bar-title class="text-white font-weight-bold">Partner-Notizen</v-app-bar-title>
       <v-btn icon @click="$router.push('/settings')">
-        <v-icon>mdi-cog</v-icon>
+        <v-icon color="white">mdi-cog</v-icon>
       </v-btn>
     </v-app-bar>
 
@@ -13,9 +19,9 @@
         <v-card class="mb-4">
           <v-card-text>
             <div class="d-flex align-center">
-              <v-icon color="primary" size="40" class="mr-3">
-                mdi-account-circle
-              </v-icon>
+              <v-avatar color="white" size="40" class="mr-3">
+                <v-icon color="primary" size="40">mdi-account-circle</v-icon>
+              </v-avatar>
               <div>
                 <div class="text-subtitle-1 font-weight-medium">
                   Willkommen, {{ authStore.userName }}

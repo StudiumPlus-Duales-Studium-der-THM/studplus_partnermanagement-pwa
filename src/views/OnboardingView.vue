@@ -7,6 +7,14 @@
             Willkommen bei Partner-Notizen
           </v-card-title>
 
+          <div class="d-flex justify-center px-4 pb-4">
+            <img
+              src="/studium-plus-logo.png"
+              alt="Studium Plus Logo"
+              style="max-width: 300px; width: 100%; height: auto;"
+            />
+          </div>
+
           <v-stepper v-model="step" alt-labels>
             <v-stepper-header>
               <v-stepper-item

@@ -1,10 +1,13 @@
 <template>
   <v-app>
     <v-app-bar color="primary" density="compact">
-      <v-btn icon @click="$router.back()">
-        <v-icon>mdi-arrow-left</v-icon>
-      </v-btn>
-      <v-app-bar-title>Neue Gesprächsnotiz</v-app-bar-title>
+      <img
+        src="/studium-plus-logo.png"
+        alt="Studium Plus"
+        style="height: 24px; filter: brightness(0) invert(1);"
+        class="mr-2 ml-4"
+      />
+      <v-app-bar-title class="text-white font-weight-bold">Neue Gesprächsnotiz</v-app-bar-title>
     </v-app-bar>
 
     <v-main>
@@ -13,7 +16,7 @@
         <v-expansion-panels v-model="showHints" class="mb-4">
           <v-expansion-panel>
             <v-expansion-panel-title>
-              <v-icon color="info" class="mr-2">mdi-lightbulb</v-icon>
+              <v-icon color="accent" class="mr-1">mdi-lightbulb</v-icon>
               Hinweise für Ihre Sprachnotiz
             </v-expansion-panel-title>
             <v-expansion-panel-text>

@@ -1,13 +1,19 @@
 <template>
   <v-app>
     <v-app-bar color="primary" density="compact">
-      <v-app-bar-title>Historie</v-app-bar-title>
+      <img
+        src="/studium-plus-logo.png"
+        alt="Studium Plus"
+        style="height: 24px; filter: brightness(0) invert(1);"
+        class="mr-2 ml-4"
+      />
+      <v-app-bar-title class="text-white font-weight-bold">Historie</v-app-bar-title>
 
       <!-- Filter menu -->
       <v-menu>
         <template v-slot:activator="{ props }">
           <v-btn icon v-bind="props">
-            <v-icon>mdi-filter</v-icon>
+            <v-icon color="white">mdi-filter</v-icon>
           </v-btn>
         </template>
         <v-list>

@@ -2,9 +2,15 @@
   <v-app>
     <v-app-bar color="primary" density="compact">
       <v-btn icon @click="$router.back()">
-        <v-icon>mdi-arrow-left</v-icon>
+        <v-icon color="white">mdi-arrow-left</v-icon>
       </v-btn>
-      <v-app-bar-title>Einstellungen</v-app-bar-title>
+      <img
+        src="/studium-plus-logo.png"
+        alt="Studium Plus"
+        style="height: 24px; filter: brightness(0) invert(1);"
+        class="mr-2"
+      />
+      <v-app-bar-title class="text-white font-weight-bold">Einstellungen</v-app-bar-title>
     </v-app-bar>
 
     <v-main>

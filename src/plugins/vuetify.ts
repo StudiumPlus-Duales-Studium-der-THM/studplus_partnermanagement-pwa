@@ -23,7 +23,7 @@ export default createVuetify({
           surface: '#FFFFFF',
           'surface-variant': '#F5F5F5',
           'on-surface': '#3E4B56',
-          'on-primary': '#3E4B56'    // Dunkler Text auf grünem Hintergrund
+          'on-primary': '#FFFFFF'    // Weißer Text auf grünem Hintergrund
         }
       },
       dark: {
@@ -40,7 +40,7 @@ export default createVuetify({
           surface: '#3E4B56',        // StudiumPlus Dunkelgrau für Karten/Surfaces
           'surface-variant': '#2A3942',
           'on-surface': '#FFFFFF',
-          'on-primary': '#3E4B56'    // Dunkler Text auf grünem Hintergrund
+          'on-primary': '#FFFFFF'    // Weißer Text auf grünem Hintergrund
         }
       }
     }

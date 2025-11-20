@@ -3,14 +3,21 @@
     <v-row justify="center" align="center">
       <v-col cols="12" sm="8" md="6" lg="4">
         <v-card class="pa-4">
-          <v-card-title class="text-center">
-            <v-icon size="60" color="primary" class="mb-2">
+          <v-card-title class="text-center d-flex flex-column align-center">
+            <img
+              src="/studium-plus-logo.png"
+              alt="Studium Plus Logo"
+              style="max-width: 300px; width: 100%; height: auto;"
+              class="mb-8"
+            />
+
+            <div class="text-h5 font-weight-bold mb-2">Partner-Notizen</div>
+            <v-icon size="60" color="primary">
               mdi-microphone
             </v-icon>
-            <div class="text-h5">Partner-Notizen</div>
           </v-card-title>
 
-          <v-card-text>
+          <v-card-text class="pt-8">
             <!-- Password Login -->
             <v-form @submit.prevent="login">
               <v-text-field
