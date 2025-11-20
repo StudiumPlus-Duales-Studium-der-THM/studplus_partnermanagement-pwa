@@ -207,7 +207,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useAudioRecorder } from '@/composables/useAudioRecorder'
 import { useProcessing } from '@/composables/useProcessing'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
@@ -216,12 +216,14 @@ import { useNotificationStore } from '@/stores/notification'
 import { RECORDING_HINTS } from '@/utils/constants'
 
 const router = useRouter()
+const route = useRoute()
 const voiceNotesStore = useVoiceNotesStore()
 const settingsStore = useSettingsStore()
 const notificationStore = useNotificationStore()
 
 const {
   isRecording,
+  recordingTime,
   formattedTime,
   audioBlob,
   audioBlobUrl,
@@ -244,6 +246,8 @@ const {
 const showHints = ref(settingsStore.showRecordingHints ? 0 : undefined)
 const isOnline = ref(navigator.onLine)
 const waveformCanvas = ref<HTMLCanvasElement | null>(null)
+const isSaved = ref(false) // Track if recording has been saved
+const loadedNoteId = ref<string | null>(null) // Track loaded note ID
 let animationId: number | null = null
 
 // Online/offline status
@@ -251,9 +255,39 @@ const updateOnlineStatus = () => {
   isOnline.value = navigator.onLine
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
+
+  // Check if we're loading an existing recording
+  const noteId = route.params.noteId as string | undefined
+  if (noteId) {
+    try {
+      const note = await voiceNotesStore.getNoteById(noteId)
+
+      if (!note) {
+        notificationStore.error('Aufnahme nicht gefunden')
+        return
+      }
+
+      if (!note.audioBlob) {
+        notificationStore.error('Aufnahme hat keine Audio-Daten')
+        return
+      }
+
+      // Load the saved recording
+      audioBlob.value = note.audioBlob
+      // Always create a fresh blob URL to avoid revoked URLs
+      audioBlobUrl.value = URL.createObjectURL(note.audioBlob)
+      isSaved.value = true
+      loadedNoteId.value = noteId
+      // Set recording time based on blob size (rough estimate)
+      recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2)
+    } catch (error) {
+      console.error('Failed to load note:', error)
+      notificationStore.error('Aufnahme konnte nicht geladen werden')
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -262,6 +296,21 @@ onUnmounted(() => {
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
+})
+
+// Save recording before leaving the route
+onBeforeRouteLeave(async (to, from, next) => {
+  // If there's an audioBlob that hasn't been saved yet, save it automatically
+  if (audioBlob.value && !isProcessing.value && !isSaved.value) {
+    try {
+      await voiceNotesStore.createNote(audioBlob.value)
+      notificationStore.info('Aufnahme wurde automatisch gespeichert')
+    } catch (error) {
+      console.error('Failed to save recording before leaving view:', error)
+      notificationStore.error('Fehler beim Speichern der Aufnahme')
+    }
+  }
+  next()
 })
 
 // Waveform visualization
@@ -333,26 +382,46 @@ const stopRecording = () => {
 
 const retakeRecording = () => {
   reset()
+  isSaved.value = false
+  loadedNoteId.value = null
 }
 
-const deleteRecording = () => {
+const deleteRecording = async () => {
+  // Delete from store if it's a loaded note
+  if (loadedNoteId.value) {
+    await voiceNotesStore.deleteNote(loadedNoteId.value)
+  }
+
   reset()
+  isSaved.value = false
+  loadedNoteId.value = null
   notificationStore.info('Aufnahme gelöscht')
 }
 
 const processRecording = async () => {
   if (!audioBlob.value) return
 
+  let noteId = loadedNoteId.value
+
   if (!isOnline.value) {
-    // Save for later processing
-    await voiceNotesStore.createNote(audioBlob.value)
+    // Save for later processing if not already saved
+    if (!noteId) {
+      noteId = await voiceNotesStore.createNote(audioBlob.value)
+      isSaved.value = true
+      loadedNoteId.value = noteId
+    }
     notificationStore.warning('Notiz gespeichert. Wird bei Internetverbindung verarbeitet.')
     router.push('/history')
     return
   }
 
-  // Create note and process
-  const noteId = await voiceNotesStore.createNote(audioBlob.value)
+  // Create note if it doesn't exist yet, otherwise use existing
+  if (!noteId) {
+    noteId = await voiceNotesStore.createNote(audioBlob.value)
+    isSaved.value = true
+    loadedNoteId.value = noteId
+  }
+
   const success = await processNote(noteId)
 
   if (success) {
