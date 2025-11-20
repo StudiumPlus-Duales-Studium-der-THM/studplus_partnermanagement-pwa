@@ -191,6 +191,9 @@ const isClickable = (note: VoiceNote) => {
 const handleNoteClick = async (note: VoiceNote) => {
   switch (note.status) {
     case NoteStatus.RECORDED:
+      // Go back to recording view to listen and process
+      router.push(`/recording/${note.id}`)
+      break
     case NoteStatus.ERROR:
       // Retry processing
       await processNote(note.id)
