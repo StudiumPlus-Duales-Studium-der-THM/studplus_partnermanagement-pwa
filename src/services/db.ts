@@ -2,10 +2,10 @@ import Dexie, { Table } from 'dexie'
 import type { VoiceNote, Company, UserCredentials, WebAuthnCredential } from '@/types'
 
 export class AppDatabase extends Dexie {
-  voiceNotes!: Table<VoiceNote>
-  companies!: Table<Company>
-  userCredentials!: Table<UserCredentials>
-  webAuthnCredentials!: Table<WebAuthnCredential>
+  voiceNotes!: Table<VoiceNote, string>
+  companies!: Table<Company, string>
+  userCredentials!: Table<UserCredentials, string>
+  webAuthnCredentials!: Table<WebAuthnCredential, string>
 
   constructor() {
     super('StudiumPlusPartnerNotes')

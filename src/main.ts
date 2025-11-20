@@ -10,7 +10,7 @@ import './assets/styles/main.scss'
 const app = createApp(App)
 
 // Global error handler
-app.config.errorHandler = (err, instance, info) => {
+app.config.errorHandler = (err, _instance, info) => {
   console.error('Global error:', err, info)
   // Optional: Sentry.captureException(err)
 }
