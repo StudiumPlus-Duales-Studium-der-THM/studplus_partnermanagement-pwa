@@ -8,14 +8,6 @@ export interface UserCredentials {
   updatedAt: Date
 }
 
-export interface WebAuthnCredential {
-  id: string
-  credentialId: string
-  publicKey: string
-  counter: number
-  createdAt: Date
-}
-
 export interface AuthState {
   isAuthenticated: boolean
   isSetupComplete: boolean

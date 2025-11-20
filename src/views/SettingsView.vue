@@ -86,18 +86,6 @@
               prepend-inner-icon="mdi-timer"
               variant="outlined"
             ></v-select>
-
-            <!-- WebAuthn -->
-            <v-switch
-              v-model="webAuthnEnabled"
-              label="Biometrische Anmeldung"
-              color="primary"
-              :disabled="!webAuthnAvailable"
-              @change="toggleWebAuthn"
-            ></v-switch>
-            <p v-if="!webAuthnAvailable" class="text-caption text-grey">
-              Biometrische Anmeldung wird von Ihrem Gerät nicht unterstützt.
-            </p>
           </v-card-text>
         </v-card>
 
@@ -241,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
@@ -270,10 +258,6 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const isChangingPassword = ref(false)
 
-// WebAuthn
-const webAuthnAvailable = ref(false)
-const webAuthnEnabled = ref(false)
-
 // Tokens
 const githubToken = ref('')
 const showGithubToken = ref(false)
@@ -282,10 +266,6 @@ const isSavingToken = ref(false)
 
 // Data
 const isUpdatingCompanies = ref(false)
-
-onMounted(async () => {
-  webAuthnAvailable.value = await authStore.isWebAuthnAvailable()
-})
 
 // Profile
 const saveName = async () => {
@@ -322,19 +302,6 @@ const changePassword = async () => {
     notificationStore.error('Fehler beim Ändern des Passworts')
   } finally {
     isChangingPassword.value = false
-  }
-}
-
-// WebAuthn
-const toggleWebAuthn = async () => {
-  if (webAuthnEnabled.value) {
-    const success = await authStore.registerWebAuthn()
-    if (success) {
-      notificationStore.success('Biometrie aktiviert')
-    } else {
-      webAuthnEnabled.value = false
-      notificationStore.error('Fehler bei der Aktivierung')
-    }
   }
 }
 

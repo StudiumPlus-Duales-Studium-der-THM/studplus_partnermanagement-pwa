@@ -11,24 +11,6 @@
           </v-card-title>
 
           <v-card-text>
-            <!-- WebAuthn Button -->
-            <v-btn
-              v-if="webAuthnAvailable"
-              block
-              size="large"
-              color="primary"
-              class="mb-4"
-              prepend-icon="mdi-fingerprint"
-              :loading="isAuthenticating"
-              @click="authenticateWithBiometrics"
-            >
-              Mit Biometrie entsperren
-            </v-btn>
-
-            <v-divider v-if="webAuthnAvailable" class="mb-4">
-              <span class="text-caption text-grey px-2">oder</span>
-            </v-divider>
-
             <!-- Password Login -->
             <v-form @submit.prevent="login">
               <v-text-field
@@ -74,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
@@ -88,11 +70,6 @@ const showPassword = ref(false)
 const isAuthenticating = ref(false)
 const errorMessage = ref('')
 const failedAttempts = ref(0)
-const webAuthnAvailable = ref(false)
-
-onMounted(async () => {
-  webAuthnAvailable.value = await authStore.isWebAuthnAvailable()
-})
 
 const login = async () => {
   if (!password.value || failedAttempts.value >= 3) return
@@ -119,27 +96,6 @@ const login = async () => {
   } catch (error) {
     console.error('Login failed:', error)
     notificationStore.error('Anmeldung fehlgeschlagen')
-  } finally {
-    isAuthenticating.value = false
-  }
-}
-
-const authenticateWithBiometrics = async () => {
-  isAuthenticating.value = true
-  errorMessage.value = ''
-
-  try {
-    const success = await authStore.authenticateWithWebAuthn()
-
-    if (success) {
-      router.push('/')
-    } else {
-      errorMessage.value = 'Session abgelaufen. Bitte mit Passwort anmelden.'
-      notificationStore.info('Melden Sie sich einmal mit Passwort an, um die biometrische Authentifizierung zu aktivieren.')
-    }
-  } catch (error) {
-    console.error('WebAuthn failed:', error)
-    errorMessage.value = 'Biometrische Authentifizierung fehlgeschlagen'
   } finally {
     isAuthenticating.value = false
   }

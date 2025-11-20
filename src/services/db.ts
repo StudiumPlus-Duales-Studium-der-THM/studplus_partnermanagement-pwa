@@ -1,11 +1,10 @@
 import Dexie, { Table } from 'dexie'
-import type { VoiceNote, Company, UserCredentials, WebAuthnCredential } from '@/types'
+import type { VoiceNote, Company, UserCredentials } from '@/types'
 
 export class AppDatabase extends Dexie {
   voiceNotes!: Table<VoiceNote>
   companies!: Table<Company>
   userCredentials!: Table<UserCredentials>
-  webAuthnCredentials!: Table<WebAuthnCredential>
 
   constructor() {
     super('StudiumPlusPartnerNotes')
@@ -13,8 +12,7 @@ export class AppDatabase extends Dexie {
     this.version(1).stores({
       voiceNotes: 'id, status, recordedAt, selectedCompanyId',
       companies: 'id, name, shortName',
-      userCredentials: 'id',
-      webAuthnCredentials: 'id, credentialId'
+      userCredentials: 'id'
     })
   }
 }
@@ -111,37 +109,9 @@ export const userCredentialsDB = {
   }
 }
 
-// WebAuthn Credentials operations
-export const webAuthnCredentialsDB = {
-  async getAll(): Promise<WebAuthnCredential[]> {
-    return await db.webAuthnCredentials.toArray()
-  },
-
-  async add(credential: WebAuthnCredential): Promise<string> {
-    return await db.webAuthnCredentials.add(credential) as string
-  },
-
-  async getByCredentialId(credentialId: string): Promise<WebAuthnCredential | undefined> {
-    return await db.webAuthnCredentials.where('credentialId').equals(credentialId).first()
-  },
-
-  async updateCounter(id: string, counter: number): Promise<void> {
-    await db.webAuthnCredentials.update(id, { counter })
-  },
-
-  async delete(id: string): Promise<void> {
-    await db.webAuthnCredentials.delete(id)
-  },
-
-  async deleteAll(): Promise<void> {
-    await db.webAuthnCredentials.clear()
-  }
-}
-
 // Clear all data
 export const clearAllData = async (): Promise<void> => {
   await db.voiceNotes.clear()
   await db.companies.clear()
   await db.userCredentials.clear()
-  await db.webAuthnCredentials.clear()
 }
