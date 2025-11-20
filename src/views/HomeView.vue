@@ -64,9 +64,8 @@
           <v-list-item
             v-for="note in recentNotes"
             :key="note.id"
-            :to="note.status === 'processed' ? `/preview/${note.id}` : undefined"
-            :href="note.githubIssueUrl"
-            :target="note.githubIssueUrl ? '_blank' : undefined"
+            @click="handleNoteClick(note)"
+            :class="{ 'cursor-pointer': isClickable(note) }"
           >
             <template v-slot:prepend>
               <v-icon :color="getStatusColor(note.status)">
@@ -128,15 +127,19 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
 import { useCompaniesStore } from '@/stores/companies'
+import { useProcessing } from '@/composables/useProcessing'
 import { formatRelativeTime, getStatusLabel, getStatusColor } from '@/utils/formatters'
-import { NoteStatus } from '@/types'
+import { NoteStatus, type VoiceNote } from '@/types'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const voiceNotesStore = useVoiceNotesStore()
 const companiesStore = useCompaniesStore()
+const { processNote } = useProcessing()
 
 onMounted(async () => {
   await voiceNotesStore.loadNotes()
@@ -168,4 +171,41 @@ const getStatusIcon = (status: NoteStatus) => {
   }
   return icons[status] || 'mdi-help-circle'
 }
+
+const isClickable = (note: VoiceNote) => {
+  return [
+    NoteStatus.RECORDED,
+    NoteStatus.TRANSCRIBED,
+    NoteStatus.PROCESSED,
+    NoteStatus.SENT,
+    NoteStatus.ERROR
+  ].includes(note.status)
+}
+
+const handleNoteClick = async (note: VoiceNote) => {
+  switch (note.status) {
+    case NoteStatus.RECORDED:
+    case NoteStatus.ERROR:
+      // Retry processing
+      await processNote(note.id)
+      break
+    case NoteStatus.TRANSCRIBED:
+    case NoteStatus.PROCESSED:
+      // Go to preview
+      router.push(`/preview/${note.id}`)
+      break
+    case NoteStatus.SENT:
+      // Open GitHub issue
+      if (note.githubIssueUrl) {
+        window.open(note.githubIssueUrl, '_blank')
+      }
+      break
+  }
+}
 </script>
+
+<style scoped>
+.cursor-pointer {
+  cursor: pointer;
+}
+</style>
