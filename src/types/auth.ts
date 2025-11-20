@@ -21,3 +21,11 @@ export interface SetupData {
   password: string
   githubToken: string
 }
+
+export interface AuthSession {
+  id: string
+  userName: string
+  sessionToken: string
+  lastActivity: number
+  createdAt: Date
+}

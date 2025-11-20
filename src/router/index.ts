@@ -66,6 +66,23 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
+  // Try to restore session if not authenticated but session exists
+  if (!authStore.isAuthenticated) {
+    try {
+      const sessionPassword = sessionStorage.getItem('app_session_pw')
+      if (sessionPassword) {
+        const restored = await authStore.restoreSession(sessionPassword)
+        if (!restored) {
+          // Session restoration failed, clear invalid session data
+          sessionStorage.removeItem('app_session_pw')
+        }
+      }
+    } catch (error) {
+      console.error('Session restore error:', error)
+      sessionStorage.removeItem('app_session_pw')
+    }
+  }
+
   // Check authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'auth' })
