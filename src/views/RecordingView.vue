@@ -246,6 +246,7 @@ const showHints = ref(settingsStore.showRecordingHints ? 0 : undefined)
 const isOnline = ref(navigator.onLine)
 const waveformCanvas = ref<HTMLCanvasElement | null>(null)
 const isSaved = ref(false) // Track if recording has been saved
+const loadedNoteId = ref<string | null>(null) // Track loaded note ID
 let animationId: number | null = null
 
 // Online/offline status
@@ -262,13 +263,29 @@ onMounted(async () => {
   if (noteId) {
     try {
       const note = await voiceNotesStore.getNoteById(noteId)
-      if (note && note.audioBlob) {
-        // Load the saved recording
-        audioBlob.value = note.audioBlob
-        audioBlobUrl.value = note.audioBlobUrl || URL.createObjectURL(note.audioBlob)
-        isSaved.value = true // Already saved
-        recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2) // Rough estimate
+      console.log('Loading note:', noteId, note)
+
+      if (!note) {
+        console.error('Note not found:', noteId)
+        notificationStore.error('Aufnahme nicht gefunden')
+        return
       }
+
+      if (!note.audioBlob) {
+        console.error('Note has no audioBlob:', noteId)
+        notificationStore.error('Aufnahme hat keine Audio-Daten')
+        return
+      }
+
+      // Load the saved recording
+      audioBlob.value = note.audioBlob
+      // Always create a fresh blob URL to avoid revoked URLs
+      audioBlobUrl.value = URL.createObjectURL(note.audioBlob)
+      isSaved.value = true // Already saved
+      loadedNoteId.value = noteId // Remember the note ID
+      recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2) // Rough estimate
+
+      console.log('Recording loaded successfully')
     } catch (error) {
       console.error('Failed to load note:', error)
       notificationStore.error('Aufnahme konnte nicht geladen werden')
@@ -370,29 +387,45 @@ const stopRecording = () => {
 const retakeRecording = () => {
   reset()
   isSaved.value = false
+  loadedNoteId.value = null
 }
 
-const deleteRecording = () => {
+const deleteRecording = async () => {
+  // Delete from store if it's a loaded note
+  if (loadedNoteId.value) {
+    await voiceNotesStore.deleteNote(loadedNoteId.value)
+  }
+
   reset()
   isSaved.value = false
+  loadedNoteId.value = null
   notificationStore.info('Aufnahme gelöscht')
 }
 
 const processRecording = async () => {
   if (!audioBlob.value) return
 
+  let noteId = loadedNoteId.value
+
   if (!isOnline.value) {
-    // Save for later processing
-    await voiceNotesStore.createNote(audioBlob.value)
-    isSaved.value = true
+    // Save for later processing if not already saved
+    if (!noteId) {
+      noteId = await voiceNotesStore.createNote(audioBlob.value)
+      isSaved.value = true
+      loadedNoteId.value = noteId
+    }
     notificationStore.warning('Notiz gespeichert. Wird bei Internetverbindung verarbeitet.')
     router.push('/history')
     return
   }
 
-  // Create note and process
-  const noteId = await voiceNotesStore.createNote(audioBlob.value)
-  isSaved.value = true
+  // Create note if it doesn't exist yet, otherwise use existing
+  if (!noteId) {
+    noteId = await voiceNotesStore.createNote(audioBlob.value)
+    isSaved.value = true
+    loadedNoteId.value = noteId
+  }
+
   const success = await processNote(noteId)
 
   if (success) {
