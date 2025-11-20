@@ -11,47 +11,66 @@
       <v-container>
         <v-card v-if="note">
           <v-card-text>
-            <!-- Company selection -->
-            <v-autocomplete
-              v-model="selectedCompanyId"
-              :items="companiesStore.companies"
+            <!-- Company selection with custom entry -->
+            <v-combobox
+              v-model="companySelection"
+              :items="companyOptions"
               item-title="name"
               item-value="id"
               label="Unternehmen"
               prepend-inner-icon="mdi-office-building"
               :loading="companiesStore.isLoading"
               clearable
+              :return-object="false"
               @update:model-value="onCompanyChange"
+              hint="Aus Liste wählen oder Namen eingeben"
+              persistent-hint
             >
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
-                  <v-list-item-subtitle>
+                  <v-list-item-subtitle v-if="item.raw.location">
                     {{ item.raw.location }} - {{ item.raw.partnershipType }}
                   </v-list-item-subtitle>
                 </v-list-item>
               </template>
-            </v-autocomplete>
+              <template v-slot:no-data>
+                <v-list-item>
+                  <v-list-item-title>
+                    Eingabe als benutzerdefinierter Name verwenden
+                  </v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-combobox>
 
-            <!-- Contact selection -->
-            <v-autocomplete
-              v-model="selectedContactId"
-              :items="contacts"
-              :item-title="formatContactOption"
+            <!-- Contact selection with custom entry -->
+            <v-combobox
+              v-model="contactSelection"
+              :items="contactOptions"
+              item-title="displayName"
               item-value="id"
-              label="Ansprechpartner"
+              label="Ansprechpartner *"
               prepend-inner-icon="mdi-account"
-              clearable
-              :disabled="!selectedCompanyId"
+              :return-object="false"
               class="mt-4"
+              :rules="[v => !!v || 'Ansprechpartner ist erforderlich']"
+              hint="Aus Liste wählen oder Namen eingeben"
+              persistent-hint
             >
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
-                  <v-list-item-subtitle>
+                  <v-list-item-subtitle v-if="item.raw.role">
                     {{ item.raw.role }}
                   </v-list-item-subtitle>
                 </v-list-item>
               </template>
-            </v-autocomplete>
+              <template v-slot:no-data>
+                <v-list-item>
+                  <v-list-item-title>
+                    Eingabe als benutzerdefinierter Name verwenden
+                  </v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-combobox>
 
             <!-- Transcription (collapsible) -->
             <v-expansion-panels class="mt-4">
@@ -68,7 +87,7 @@
 
             <!-- Process button (if not yet processed) -->
             <v-btn
-              v-if="note.status === 'transcribed' && selectedCompanyId"
+              v-if="note.status === 'transcribed'"
               block
               color="secondary"
               class="mt-4"
@@ -172,31 +191,37 @@ import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
 import { useCompaniesStore } from '@/stores/companies'
+import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useProcessing } from '@/composables/useProcessing'
+import { createIssue, formatIssueBody } from '@/services/github.service'
 import type { VoiceNote, Contact } from '@/types'
 import { NoteStatus } from '@/types'
+import { format } from 'date-fns'
+import { de } from 'date-fns/locale'
 
 const route = useRoute()
 const router = useRouter()
 const voiceNotesStore = useVoiceNotesStore()
 const companiesStore = useCompaniesStore()
+const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
 const {
   isProcessing,
   processingStep,
   error,
-  processTranscription,
-  sendToGitHub
+  processTranscription
 } = useProcessing()
 
 const note = ref<VoiceNote | null>(null)
 const isLoading = ref(true)
 const isSending = ref(false)
-const selectedCompanyId = ref<string | null>(null)
-const selectedContactId = ref<string | null>(null)
 const editedText = ref('')
+
+// Company and contact selection (can be ID or custom string)
+const companySelection = ref<string | null>(null)
+const contactSelection = ref<string | null>(null)
 
 // Load note
 onMounted(async () => {
@@ -205,23 +230,82 @@ onMounted(async () => {
 
   if (loadedNote) {
     note.value = loadedNote
-    selectedCompanyId.value = loadedNote.selectedCompanyId || null
-    selectedContactId.value = loadedNote.selectedContactId || null
+    // Set initial company selection
+    if (loadedNote.selectedCompanyId) {
+      const company = companiesStore.getCompanyById(loadedNote.selectedCompanyId)
+      companySelection.value = company ? loadedNote.selectedCompanyId : null
+    }
+    // Set initial contact selection
+    if (loadedNote.selectedContactId && loadedNote.selectedCompanyId) {
+      const contact = companiesStore.getContactById(loadedNote.selectedCompanyId, loadedNote.selectedContactId)
+      contactSelection.value = contact ? loadedNote.selectedContactId : null
+    }
     editedText.value = loadedNote.processedText || ''
   }
 
   isLoading.value = false
 })
 
-// Contacts for selected company
-const contacts = computed((): Contact[] => {
-  if (!selectedCompanyId.value) return []
-  return companiesStore.getContactsByCompanyId(selectedCompanyId.value)
+// Company options for combobox
+const companyOptions = computed(() => {
+  return companiesStore.companies.map(c => ({
+    id: c.id,
+    name: c.name,
+    location: c.location,
+    partnershipType: c.partnershipType
+  }))
 })
 
-// Format contact for autocomplete
-const formatContactOption = (contact: Contact): string => {
-  return `${contact.firstName} ${contact.lastName}`
+// Contact options for combobox
+const contactOptions = computed(() => {
+  // If a company from the list is selected, show its contacts
+  const selectedCompany = companiesStore.getCompanyById(companySelection.value || '')
+  if (selectedCompany) {
+    return selectedCompany.contacts.map(c => ({
+      id: c.id,
+      displayName: `${c.firstName} ${c.lastName}`,
+      role: c.role
+    }))
+  }
+  return []
+})
+
+// Get actual company name (from list or custom)
+const getCompanyName = (): string => {
+  if (!companySelection.value) return 'Unbekannt'
+
+  // Check if it's an ID from the list
+  const company = companiesStore.getCompanyById(companySelection.value)
+  if (company) {
+    return company.name
+  }
+
+  // Otherwise it's a custom string
+  return companySelection.value
+}
+
+// Get actual contact name (from list or custom)
+const getContactName = (): string => {
+  if (!contactSelection.value) return 'Nicht angegeben'
+
+  // Check if it's an ID from the list
+  if (companySelection.value) {
+    const contact = companiesStore.getContactById(companySelection.value, contactSelection.value)
+    if (contact) {
+      return `${contact.firstName} ${contact.lastName}`
+    }
+  }
+
+  // Otherwise it's a custom string
+  return contactSelection.value
+}
+
+// Get contact role if from list
+const getContactRole = (): string | undefined => {
+  if (!contactSelection.value || !companySelection.value) return undefined
+
+  const contact = companiesStore.getContactById(companySelection.value, contactSelection.value)
+  return contact?.role
 }
 
 // Rendered markdown
@@ -229,45 +313,87 @@ const renderedMarkdown = computed(() => {
   return marked(editedText.value || '')
 })
 
-// Can send check
+// Can send check - requires contact and processed text
 const canSend = computed(() => {
   return (
-    selectedCompanyId.value &&
+    contactSelection.value &&
     editedText.value &&
     note.value?.status === NoteStatus.PROCESSED
   )
 })
 
 // Handle company change
-const onCompanyChange = async () => {
+const onCompanyChange = () => {
   // Reset contact when company changes
-  selectedContactId.value = null
+  contactSelection.value = null
 
-  // Select primary contact
-  if (selectedCompanyId.value) {
-    const primaryContact = companiesStore.getPrimaryContact(selectedCompanyId.value)
-    if (primaryContact) {
-      selectedContactId.value = primaryContact.id
+  // Select primary contact if company from list
+  if (companySelection.value) {
+    const company = companiesStore.getCompanyById(companySelection.value)
+    if (company) {
+      const primaryContact = companiesStore.getPrimaryContact(company.id)
+      if (primaryContact) {
+        contactSelection.value = primaryContact.id
+      }
     }
   }
 }
 
 // Process text with selected company/contact
 const processText = async () => {
-  if (!note.value || !selectedCompanyId.value) return
+  if (!note.value) return
 
-  const success = await processTranscription(
-    note.value.id,
-    selectedCompanyId.value,
-    selectedContactId.value || undefined
-  )
+  // Use company name for processing (either from list or custom)
+  const companyName = getCompanyName()
+  const contactName = getContactName()
 
-  if (success) {
-    // Reload note
-    const updated = await voiceNotesStore.getNoteById(note.value.id)
-    if (updated) {
-      note.value = updated
-      editedText.value = updated.processedText || ''
+  // If we have a company ID, use the regular processing
+  const companyId = companiesStore.getCompanyById(companySelection.value || '')?.id
+
+  if (companyId) {
+    const success = await processTranscription(
+      note.value.id,
+      companyId,
+      contactSelection.value || undefined
+    )
+
+    if (success) {
+      const updated = await voiceNotesStore.getNoteById(note.value.id)
+      if (updated) {
+        note.value = updated
+        editedText.value = updated.processedText || ''
+      }
+    }
+  } else {
+    // Custom company - process with custom names
+    const apiKey = authStore.openaiApiKey
+    if (!apiKey) {
+      notificationStore.error('OpenAI API-Key nicht konfiguriert')
+      return
+    }
+
+    try {
+      await voiceNotesStore.updateStatus(note.value.id, NoteStatus.PROCESSING)
+
+      const { processText: processTextAPI } = await import('@/services/openai.service')
+      const processed = await processTextAPI(
+        note.value.transcription || '',
+        companyName,
+        contactName,
+        apiKey
+      )
+
+      await voiceNotesStore.setProcessedText(note.value.id, processed)
+
+      const updated = await voiceNotesStore.getNoteById(note.value.id)
+      if (updated) {
+        note.value = updated
+        editedText.value = updated.processedText || ''
+      }
+    } catch (err) {
+      console.error('Processing failed:', err)
+      notificationStore.error('Textaufbereitung fehlgeschlagen')
+      await voiceNotesStore.updateStatus(note.value.id, NoteStatus.ERROR, 'Textaufbereitung fehlgeschlagen')
     }
   }
 }
@@ -279,34 +405,66 @@ watch(editedText, async (newText) => {
   }
 })
 
-// Save company/contact selection
-watch([selectedCompanyId, selectedContactId], async () => {
-  if (note.value) {
-    await voiceNotesStore.setCompanyAndContact(
-      note.value.id,
-      selectedCompanyId.value || '',
-      selectedContactId.value || undefined
-    )
-  }
-})
-
 // Send to GitHub
 const sendNote = async () => {
-  if (!note.value || !selectedCompanyId.value) return
+  if (!note.value || !contactSelection.value) return
+
+  const githubToken = authStore.githubToken
+  if (!githubToken) {
+    notificationStore.error('GitHub Token nicht konfiguriert')
+    return
+  }
 
   isSending.value = true
 
-  // Update processed text before sending
-  await voiceNotesStore.updateNote(note.value.id, {
-    processedText: editedText.value
-  })
+  try {
+    // Update processed text before sending
+    await voiceNotesStore.updateNote(note.value.id, {
+      processedText: editedText.value
+    })
 
-  const success = await sendToGitHub(note.value.id)
+    const companyName = getCompanyName()
+    const contactName = getContactName()
+    const contactRole = getContactRole()
 
-  isSending.value = false
+    const formattedDate = format(note.value.recordedAt, 'dd.MM.yyyy', { locale: de })
 
-  if (success) {
+    // Get study programs if company is from list
+    const company = companiesStore.getCompanyById(companySelection.value || '')
+    const studyPrograms = company?.studyPrograms || []
+
+    const issueBody = formatIssueBody({
+      companyName,
+      contactName,
+      contactRole,
+      date: formattedDate,
+      userName: authStore.userName || 'Unbekannt',
+      processedText: editedText.value,
+      studyPrograms
+    })
+
+    // Create title with company short name or full name
+    const shortName = company?.shortName || companyName
+    const title = `[${shortName}] - ${formattedDate} - ${authStore.userName}`
+
+    // Create labels
+    const labels = ['partner-kontakt']
+    if (company?.shortName) {
+      labels.push(company.shortName.toLowerCase().replace(/\s+/g, '-'))
+    }
+
+    const issue = await createIssue(githubToken, title, issueBody, labels)
+
+    await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
+
+    notificationStore.success('Issue erfolgreich erstellt!')
     router.push('/history')
+  } catch (err) {
+    console.error('GitHub issue creation failed:', err)
+    notificationStore.error('Issue konnte nicht erstellt werden')
+    await voiceNotesStore.updateStatus(note.value.id, NoteStatus.ERROR, 'Issue-Erstellung fehlgeschlagen')
+  } finally {
+    isSending.value = false
   }
 }
 
