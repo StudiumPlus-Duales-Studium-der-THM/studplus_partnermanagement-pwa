@@ -4,7 +4,6 @@ export interface UserCredentials {
   passwordHash: string
   salt: string
   githubToken: string
-  openaiApiKey?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -29,5 +28,4 @@ export interface SetupData {
   userName: string
   password: string
   githubToken: string
-  openaiApiKey?: string
 }

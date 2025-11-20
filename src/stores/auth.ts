@@ -22,10 +22,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Encrypted data in memory
   const decryptedGithubToken = ref<string | null>(null)
-  const decryptedOpenaiKey = ref<string | null>(null)
 
   const githubToken = computed(() => decryptedGithubToken.value)
-  const openaiApiKey = computed(() => decryptedOpenaiKey.value)
+  // OpenAI API key comes from environment variable only
+  const openaiApiKey = computed(() => import.meta.env.VITE_OPENAI_API_KEY || '')
 
   // Check if initial setup is complete
   const checkSetupStatus = async () => {
@@ -39,9 +39,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Encrypt sensitive data
     const encryptedGithubToken = encryptForStorage(data.githubToken, data.password, salt)
-    const encryptedOpenaiKey = data.openaiApiKey
-      ? encryptForStorage(data.openaiApiKey, data.password, salt)
-      : undefined
 
     const credentials: UserCredentials = {
       id: nanoid(),
@@ -49,7 +46,6 @@ export const useAuthStore = defineStore('auth', () => {
       passwordHash,
       salt,
       githubToken: encryptedGithubToken,
-      openaiApiKey: encryptedOpenaiKey,
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -77,14 +73,6 @@ export const useAuthStore = defineStore('auth', () => {
         password,
         credentials.salt
       )
-
-      if (credentials.openaiApiKey) {
-        decryptedOpenaiKey.value = decryptFromStorage(
-          credentials.openaiApiKey,
-          password,
-          credentials.salt
-        )
-      }
     } catch {
       return false
     }
@@ -104,7 +92,6 @@ export const useAuthStore = defineStore('auth', () => {
     sessionToken.value = null
     currentPassword.value = null
     decryptedGithubToken.value = null
-    decryptedOpenaiKey.value = null
   }
 
   // Update activity timestamp
@@ -146,27 +133,18 @@ export const useAuthStore = defineStore('auth', () => {
       credentials.salt
     )
 
-    let openaiKey: string | undefined
-    if (credentials.openaiApiKey) {
-      openaiKey = decryptFromStorage(credentials.openaiApiKey, oldPassword, credentials.salt)
-    }
-
     // Create new salt and hash
     const newSalt = generateSalt()
     const newPasswordHash = hashPassword(newPassword, newSalt)
 
     // Encrypt with new password
     const newEncryptedGithubToken = encryptForStorage(githubToken, newPassword, newSalt)
-    const newEncryptedOpenaiKey = openaiKey
-      ? encryptForStorage(openaiKey, newPassword, newSalt)
-      : undefined
 
     // Update credentials
     await userCredentialsDB.update({
       passwordHash: newPasswordHash,
       salt: newSalt,
-      githubToken: newEncryptedGithubToken,
-      openaiApiKey: newEncryptedOpenaiKey
+      githubToken: newEncryptedGithubToken
     })
 
     // Update in-memory values
@@ -193,27 +171,6 @@ export const useAuthStore = defineStore('auth', () => {
     })
 
     decryptedGithubToken.value = newToken
-    return true
-  }
-
-  // Update OpenAI API key
-  const updateOpenaiKey = async (newKey: string): Promise<boolean> => {
-    if (!currentPassword.value) {
-      return false
-    }
-
-    const credentials = await userCredentialsDB.get()
-    if (!credentials) {
-      return false
-    }
-
-    const encryptedKey = encryptForStorage(newKey, currentPassword.value, credentials.salt)
-
-    await userCredentialsDB.update({
-      openaiApiKey: encryptedKey
-    })
-
-    decryptedOpenaiKey.value = newKey
     return true
   }
 
@@ -354,7 +311,6 @@ export const useAuthStore = defineStore('auth', () => {
     checkAutoLock,
     changePassword,
     updateGithubToken,
-    updateOpenaiKey,
     updateUserName,
     isWebAuthnAvailable,
     registerWebAuthn,

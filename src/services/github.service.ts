@@ -57,8 +57,9 @@ export const fetchCompanies = async (token: string): Promise<CompaniesData> => {
     }
   )
 
-  // Decode base64 content
-  const content = atob(response.data.content)
+  // Decode base64 content (GitHub API returns content with newlines)
+  const base64Content = response.data.content.replace(/\n/g, '')
+  const content = atob(base64Content)
   return JSON.parse(content) as CompaniesData
 }
 

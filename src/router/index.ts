@@ -78,6 +78,11 @@ router.beforeEach(async (to, _from, next) => {
     return
   }
 
+  // Update activity on navigation
+  if (authStore.isAuthenticated) {
+    authStore.updateActivity()
+  }
+
   next()
 })
 

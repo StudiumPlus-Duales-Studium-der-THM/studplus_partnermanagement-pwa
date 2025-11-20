@@ -61,6 +61,8 @@
             v-for="note in filteredNotes"
             :key="note.id"
             class="mb-2"
+            @click="handleNoteClick(note)"
+            :style="{ cursor: isClickable(note.status) ? 'pointer' : 'default' }"
           >
             <template v-slot:prepend>
               <v-avatar :color="getStatusColor(note.status)" size="40">
@@ -230,6 +232,38 @@ const canEdit = (status: NoteStatus): boolean => {
     NoteStatus.TRANSCRIBED,
     NoteStatus.PROCESSED
   ].includes(status)
+}
+
+// Check if note is clickable
+const isClickable = (status: NoteStatus): boolean => {
+  return [
+    NoteStatus.RECORDED,
+    NoteStatus.TRANSCRIBED,
+    NoteStatus.PROCESSED,
+    NoteStatus.ERROR
+  ].includes(status)
+}
+
+// Handle note click
+const handleNoteClick = async (note: { id: string; status: NoteStatus; githubIssueUrl?: string }) => {
+  switch (note.status) {
+    case NoteStatus.RECORDED:
+    case NoteStatus.ERROR:
+      // Retry processing
+      await retryNote(note.id)
+      break
+    case NoteStatus.TRANSCRIBED:
+    case NoteStatus.PROCESSED:
+      // Go to preview
+      router.push(`/preview/${note.id}`)
+      break
+    case NoteStatus.SENT:
+      // Open GitHub issue if available
+      if (note.githubIssueUrl) {
+        window.open(note.githubIssueUrl, '_blank')
+      }
+      break
+  }
 }
 
 // Actions

@@ -143,32 +143,6 @@
                 </v-expansion-panel-text>
               </v-expansion-panel>
             </v-expansion-panels>
-
-            <!-- OpenAI API Key -->
-            <v-expansion-panels>
-              <v-expansion-panel>
-                <v-expansion-panel-title>
-                  OpenAI API Key
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <v-text-field
-                    v-model="openaiKey"
-                    label="API Key"
-                    :type="showOpenaiKey ? 'text' : 'password'"
-                    :append-inner-icon="showOpenaiKey ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showOpenaiKey = !showOpenaiKey"
-                    variant="outlined"
-                  ></v-text-field>
-                  <v-btn
-                    color="primary"
-                    :loading="isSavingOpenaiKey"
-                    @click="saveOpenaiKey"
-                  >
-                    Speichern
-                  </v-btn>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
           </v-card-text>
         </v-card>
 
@@ -302,12 +276,9 @@ const webAuthnEnabled = ref(false)
 
 // Tokens
 const githubToken = ref('')
-const openaiKey = ref('')
 const showGithubToken = ref(false)
-const showOpenaiKey = ref(false)
 const isValidatingToken = ref(false)
 const isSavingToken = ref(false)
-const isSavingOpenaiKey = ref(false)
 
 // Data
 const isUpdatingCompanies = ref(false)
@@ -398,21 +369,6 @@ const saveGithubToken = async () => {
     }
   } finally {
     isSavingToken.value = false
-  }
-}
-
-const saveOpenaiKey = async () => {
-  isSavingOpenaiKey.value = true
-  try {
-    const success = await authStore.updateOpenaiKey(openaiKey.value)
-    if (success) {
-      notificationStore.success('API Key gespeichert')
-      openaiKey.value = ''
-    } else {
-      notificationStore.error('Fehler beim Speichern')
-    }
-  } finally {
-    isSavingOpenaiKey.value = false
   }
 }
 

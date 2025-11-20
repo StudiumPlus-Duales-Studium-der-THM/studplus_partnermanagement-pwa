@@ -162,20 +162,7 @@
                     class="mb-4"
                   ></v-text-field>
 
-                  <v-text-field
-                    v-model="formData.openaiApiKey"
-                    label="OpenAI API Key (optional)"
-                    :type="showApiKey ? 'text' : 'password'"
-                    prepend-inner-icon="mdi-brain"
-                    :append-inner-icon="showApiKey ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showApiKey = !showApiKey"
-                    :rules="[rules.openaiKey]"
-                    variant="outlined"
-                    hint="Für Transkription und Textaufbereitung"
-                    persistent-hint
-                  ></v-text-field>
-
-                  <v-alert type="info" variant="tonal" density="compact" class="mt-4">
+                  <v-alert type="info" variant="tonal" density="compact">
                     <p class="text-caption mb-0">
                       Erstellen Sie einen Fine-grained PAT mit Berechtigungen für
                       <strong>Issues: Read/Write</strong> und
@@ -224,14 +211,12 @@ const step = ref(1)
 const isLoading = ref(false)
 const showPassword = ref(false)
 const showToken = ref(false)
-const showApiKey = ref(false)
 
 const formData = ref({
   userName: '',
   password: '',
   passwordConfirm: '',
-  githubToken: '',
-  openaiApiKey: ''
+  githubToken: ''
 })
 
 const isPasswordValid = computed(() => {
@@ -257,8 +242,7 @@ const completeSetup = async () => {
     await authStore.completeSetup({
       userName: formData.value.userName,
       password: formData.value.password,
-      githubToken: formData.value.githubToken,
-      openaiApiKey: formData.value.openaiApiKey || undefined
+      githubToken: formData.value.githubToken
     })
 
     notificationStore.success('Einrichtung abgeschlossen!')

@@ -37,23 +37,63 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notification'
+import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 
+const router = useRouter()
 const notificationStore = useNotificationStore()
+const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 const isOffline = ref(!navigator.onLine)
+
+let autoLockInterval: number | null = null
 
 const updateOnlineStatus = () => {
   isOffline.value = !navigator.onLine
 }
 
+// Update activity on user interaction
+const updateActivity = () => {
+  if (authStore.isAuthenticated) {
+    authStore.updateActivity()
+  }
+}
+
+// Check auto-lock periodically
+const checkAutoLock = () => {
+  if (authStore.isAuthenticated && settingsStore.autoLockMinutes > 0) {
+    authStore.checkAutoLock(settingsStore.autoLockMinutes)
+    if (!authStore.isAuthenticated) {
+      router.push('/auth')
+    }
+  }
+}
+
 onMounted(() => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
+
+  // Track user activity
+  window.addEventListener('click', updateActivity)
+  window.addEventListener('keydown', updateActivity)
+  window.addEventListener('touchstart', updateActivity)
+
+  // Check auto-lock every 30 seconds
+  autoLockInterval = window.setInterval(checkAutoLock, 30000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', updateOnlineStatus)
   window.removeEventListener('offline', updateOnlineStatus)
+  window.removeEventListener('click', updateActivity)
+  window.removeEventListener('keydown', updateActivity)
+  window.removeEventListener('touchstart', updateActivity)
+
+  if (autoLockInterval) {
+    clearInterval(autoLockInterval)
+  }
 })
 </script>
 
