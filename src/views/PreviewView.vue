@@ -72,31 +72,50 @@
               </template>
             </v-combobox>
 
-            <!-- Transcription (collapsible) -->
-            <v-expansion-panels class="mt-4">
-              <v-expansion-panel>
-                <v-expansion-panel-title>
-                  <v-icon class="mr-2">mdi-text</v-icon>
-                  Original-Transkription
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <p class="text-body-2">{{ note.transcription }}</p>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
+            <!-- Editable Transcription -->
+            <div class="mt-4">
+              <v-textarea
+                v-model="editedTranscription"
+                label="Transkription (editierbar)"
+                rows="6"
+                auto-grow
+                variant="outlined"
+                hint="Sie können den transkribierten Text vor der Weiterverarbeitung bearbeiten"
+                persistent-hint
+              >
+                <template v-slot:prepend-inner>
+                  <v-icon>mdi-text</v-icon>
+                </template>
+              </v-textarea>
+            </div>
 
-            <!-- Process button (if not yet processed) -->
-            <v-btn
-              v-if="note.status === 'transcribed'"
-              block
-              color="secondary"
-              class="mt-4"
-              :loading="isProcessing"
-              @click="processText"
-            >
-              <v-icon start>mdi-cog</v-icon>
-              Text aufbereiten
-            </v-btn>
+            <!-- Action buttons (if not yet processed) -->
+            <v-row v-if="note.status === 'transcribed'" class="mt-4" dense>
+              <v-col cols="12" sm="6">
+                <v-btn
+                  block
+                  color="secondary"
+                  :loading="isProcessing"
+                  @click="processText"
+                >
+                  <v-icon start>mdi-cog</v-icon>
+                  Text aufbereiten
+                </v-btn>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn
+                  block
+                  color="primary"
+                  variant="tonal"
+                  :loading="isSending"
+                  :disabled="!contactSelection"
+                  @click="sendDirectly"
+                >
+                  <v-icon start>mdi-send-outline</v-icon>
+                  Direkt senden
+                </v-btn>
+              </v-col>
+            </v-row>
 
             <!-- Processed text editor -->
             <div v-if="note.processedText" class="mt-4">
@@ -218,6 +237,7 @@ const note = ref<VoiceNote | null>(null)
 const isLoading = ref(true)
 const isSending = ref(false)
 const editedText = ref('')
+const editedTranscription = ref('')
 
 // Company and contact selection (can be ID or custom string)
 const companySelection = ref<string | null>(null)
@@ -241,6 +261,7 @@ onMounted(async () => {
       contactSelection.value = contact ? loadedNote.selectedContactId : null
     }
     editedText.value = loadedNote.processedText || ''
+    editedTranscription.value = loadedNote.transcription || ''
   }
 
   isLoading.value = false
@@ -347,6 +368,9 @@ const processText = async () => {
   const companyName = getCompanyName()
   const contactName = getContactName()
 
+  // First, save the edited transcription
+  await voiceNotesStore.setTranscription(note.value.id, editedTranscription.value)
+
   // If we have a company ID, use the regular processing
   const companyId = companiesStore.getCompanyById(companySelection.value || '')?.id
 
@@ -377,7 +401,7 @@ const processText = async () => {
 
       const { processText: processTextAPI } = await import('@/services/openai.service')
       const processed = await processTextAPI(
-        note.value.transcription || '',
+        editedTranscription.value || '',
         companyName,
         contactName,
         apiKey
@@ -404,6 +428,76 @@ watch(editedText, async (newText) => {
     await voiceNotesStore.updateNote(note.value.id, { processedText: newText })
   }
 })
+
+// Watch for transcription edits
+watch(editedTranscription, async (newTranscription) => {
+  if (note.value && newTranscription !== note.value.transcription) {
+    await voiceNotesStore.setTranscription(note.value.id, newTranscription)
+  }
+})
+
+// Send directly to GitHub with unprocessed transcript
+const sendDirectly = async () => {
+  if (!note.value || !contactSelection.value) return
+
+  const githubToken = authStore.githubToken
+  if (!githubToken) {
+    notificationStore.error('GitHub Token nicht konfiguriert')
+    return
+  }
+
+  isSending.value = true
+
+  try {
+    // Update transcription before sending
+    await voiceNotesStore.setTranscription(note.value.id, editedTranscription.value)
+
+    const companyName = getCompanyName()
+    const contactName = getContactName()
+    const contactRole = getContactRole()
+
+    const formattedDate = format(note.value.recordedAt, 'dd.MM.yyyy', { locale: de })
+
+    // Get study programs if company is from list
+    const company = companiesStore.getCompanyById(companySelection.value || '')
+    const studyPrograms = company?.studyPrograms || []
+
+    // Use transcription text instead of processed text
+    const issueBody = formatIssueBody({
+      companyName,
+      contactName,
+      contactRole,
+      date: formattedDate,
+      userName: authStore.userName || 'Unbekannt',
+      processedText: editedTranscription.value,
+      studyPrograms
+    })
+
+    // Create title with company short name or full name
+    const shortName = company?.shortName || companyName
+    const title = `[${shortName}] - ${formattedDate} - ${authStore.userName}`
+
+    // Create labels
+    const labels = ['partner-kontakt']
+    if (company?.shortName) {
+      labels.push(company.shortName.toLowerCase().replace(/\s+/g, '-'))
+    }
+
+    const issue = await createIssue(githubToken, title, issueBody, labels)
+
+    await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
+    await voiceNotesStore.updateStatus(note.value.id, NoteStatus.SENT)
+
+    notificationStore.success('Issue erfolgreich erstellt!')
+    router.push('/history')
+  } catch (err) {
+    console.error('GitHub issue creation failed:', err)
+    notificationStore.error('Issue konnte nicht erstellt werden')
+    await voiceNotesStore.updateStatus(note.value.id, NoteStatus.ERROR, 'Issue-Erstellung fehlgeschlagen')
+  } finally {
+    isSending.value = false
+  }
+}
 
 // Send to GitHub
 const sendNote = async () => {
