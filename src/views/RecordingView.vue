@@ -227,7 +227,7 @@ const {
   isSupported,
   startRecording: start,
   stopRecording: stop,
-  cancelRecording,
+  cancelRecording: _cancelRecording,
   reset
 } = useAudioRecorder()
 
@@ -342,7 +342,7 @@ const processRecording = async () => {
 
   if (!isOnline.value) {
     // Save for later processing
-    const noteId = await voiceNotesStore.createNote(audioBlob.value)
+    await voiceNotesStore.createNote(audioBlob.value)
     notificationStore.warning('Notiz gespeichert. Wird bei Internetverbindung verarbeitet.')
     router.push('/history')
     return

@@ -36,7 +36,7 @@ export const voiceNotesDB = {
   },
 
   async add(note: VoiceNote): Promise<string> {
-    return await db.voiceNotes.add(note)
+    return await db.voiceNotes.add(note) as string
   },
 
   async update(id: string, changes: Partial<VoiceNote>): Promise<number> {
@@ -118,7 +118,7 @@ export const webAuthnCredentialsDB = {
   },
 
   async add(credential: WebAuthnCredential): Promise<string> {
-    return await db.webAuthnCredentials.add(credential)
+    return await db.webAuthnCredentials.add(credential) as string
   },
 
   async getByCredentialId(credentialId: string): Promise<WebAuthnCredential | undefined> {

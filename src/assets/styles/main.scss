@@ -1,11 +1,30 @@
 // Main styles for StudiumPlus Partner-Notizen PWA
 
+// StudiumPlus Corporate Identity Colors
+:root {
+  --sp-primary: #8CC927;      // StudiumPlus Grün
+  --sp-dark: #3E4B56;         // StudiumPlus Dunkelgrau
+  --sp-light: #FFFFFF;        // Weiß
+  --sp-gray: #D1D6D8;         // Hellgrau
+  --sp-gray-light: #F5F5F5;   // Sehr helles Grau für Hintergründe
+  --sp-text-dark: #3E4B56;    // Dunkler Text
+  --sp-text-light: #FFFFFF;   // Heller Text
+}
+
+// Dark mode color overrides
+.v-theme--dark {
+  --sp-text-dark: #FFFFFF;
+  --sp-text-light: #3E4B56;
+  --sp-gray-light: #2A3942;
+}
+
 // Global styles
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: 'Roboto', sans-serif;
+  font-weight: 300;  // StudiumPlus Standard-Gewicht
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -20,7 +39,7 @@ html, body {
   -webkit-user-select: none;
 }
 
-// Custom scrollbar
+// Custom scrollbar with StudiumPlus styling
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -31,38 +50,38 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(62, 75, 86, 0.2);  // StudiumPlus dark color
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(140, 201, 39, 0.5);  // StudiumPlus green on hover
 }
 
 // Dark mode scrollbar
 .v-theme--dark {
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(209, 214, 216, 0.2);  // StudiumPlus gray
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(140, 201, 39, 0.5);  // StudiumPlus green on hover
   }
 }
 
-// Recording animation
+// Recording animation with StudiumPlus green
 @keyframes pulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+    box-shadow: 0 0 0 0 rgba(140, 201, 39, 0.7);
   }
   70% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+    box-shadow: 0 0 0 10px rgba(140, 201, 39, 0);
   }
   100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+    box-shadow: 0 0 0 0 rgba(140, 201, 39, 0);
   }
 }
 
@@ -70,13 +89,13 @@ html, body {
   animation: pulse 1.5s infinite;
 }
 
-// Info box styling
+// Info box styling with StudiumPlus colors
 .info-box {
-  background-color: rgba(33, 150, 243, 0.1);
-  border-left: 4px solid #2196F3;
+  background-color: rgba(140, 201, 39, 0.1);
+  border-left: 4px solid var(--sp-primary);
   padding: 16px;
   margin-bottom: 16px;
-  border-radius: 4px;
+  border-radius: 8px;
 
   ul {
     margin: 8px 0 0 16px;
@@ -88,7 +107,7 @@ html, body {
   }
 }
 
-// Status badge colors
+// Status badge colors with StudiumPlus accent
 .status-recorded {
   background-color: #FF9800 !important;
 }
@@ -102,7 +121,7 @@ html, body {
 }
 
 .status-sent {
-  background-color: #4CAF50 !important;
+  background-color: var(--sp-primary) !important;  // StudiumPlus Grün für "gesendet"
 }
 
 .status-error {
@@ -125,14 +144,14 @@ html, body {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-// Markdown preview
+// Markdown preview with StudiumPlus styling
 .markdown-preview {
   h2 {
     font-size: 1.25rem;
-    font-weight: 500;
+    font-weight: 500;  // StudiumPlus semibold
     margin-top: 16px;
     margin-bottom: 8px;
-    color: var(--v-theme-primary);
+    color: var(--sp-primary);
   }
 
   ul, ol {
@@ -142,10 +161,12 @@ html, body {
 
   li {
     margin-bottom: 4px;
+    font-weight: 300;  // StudiumPlus standard
   }
 
   p {
     margin-bottom: 12px;
+    font-weight: 300;  // StudiumPlus standard
   }
 }
 
@@ -170,4 +191,51 @@ html, body {
 
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+// StudiumPlus Utility Classes
+.sp-bg-primary {
+  background-color: var(--sp-primary) !important;
+}
+
+.sp-bg-dark {
+  background-color: var(--sp-dark) !important;
+}
+
+.sp-bg-gray {
+  background-color: var(--sp-gray) !important;
+}
+
+.sp-text-primary {
+  color: var(--sp-primary) !important;
+}
+
+.sp-text-dark {
+  color: var(--sp-text-dark) !important;
+}
+
+.sp-border-primary {
+  border-color: var(--sp-primary) !important;
+}
+
+// Typography weights following StudiumPlus standards
+.font-light {
+  font-weight: 300;
+}
+
+.font-normal {
+  font-weight: 400;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+// Smooth transitions for hover effects
+.sp-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

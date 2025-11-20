@@ -11,28 +11,36 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          primary: '#1976D2',
-          secondary: '#FF6F00',
-          accent: '#FFC107',
+          // StudiumPlus Corporate Identity
+          primary: '#8CC927',        // StudiumPlus Grün
+          secondary: '#3E4B56',      // StudiumPlus Dunkelgrau
+          accent: '#8CC927',         // Grün für Akzente
           error: '#F44336',
           info: '#2196F3',
-          success: '#4CAF50',
+          success: '#8CC927',        // Grün für Erfolg
           warning: '#FF9800',
-          background: '#FAFAFA',
-          surface: '#FFFFFF'
+          background: '#FFFFFF',
+          surface: '#FFFFFF',
+          'surface-variant': '#F5F5F5',
+          'on-surface': '#3E4B56',
+          'on-primary': '#3E4B56'    // Dunkler Text auf grünem Hintergrund
         }
       },
       dark: {
         colors: {
-          primary: '#2196F3',
-          secondary: '#FF6F00',
-          accent: '#FFC107',
+          // StudiumPlus Corporate Identity (Dark Mode)
+          primary: '#8CC927',        // StudiumPlus Grün (bleibt gleich)
+          secondary: '#D1D6D8',      // Hellgrau für Kontrast
+          accent: '#8CC927',         // Grün für Akzente
           error: '#F44336',
           info: '#2196F3',
-          success: '#4CAF50',
+          success: '#8CC927',        // Grün für Erfolg
           warning: '#FF9800',
-          background: '#121212',
-          surface: '#1E1E1E'
+          background: '#1A1A1A',     // Sehr dunkler Hintergrund
+          surface: '#3E4B56',        // StudiumPlus Dunkelgrau für Karten/Surfaces
+          'surface-variant': '#2A3942',
+          'on-surface': '#FFFFFF',
+          'on-primary': '#3E4B56'    // Dunkler Text auf grünem Hintergrund
         }
       }
     }
