@@ -134,7 +134,8 @@ const authenticateWithBiometrics = async () => {
     if (success) {
       router.push('/')
     } else {
-      errorMessage.value = 'Biometrische Authentifizierung fehlgeschlagen'
+      errorMessage.value = 'Session abgelaufen. Bitte mit Passwort anmelden.'
+      notificationStore.info('Melden Sie sich einmal mit Passwort an, um die biometrische Authentifizierung zu aktivieren.')
     }
   } catch (error) {
     console.error('WebAuthn failed:', error)

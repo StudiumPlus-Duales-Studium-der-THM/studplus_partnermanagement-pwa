@@ -12,6 +12,8 @@ import {
 } from '@/services/encryption.service'
 import type { SetupData, UserCredentials } from '@/types'
 
+const SESSION_STORAGE_KEY = 'auth_session'
+
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
   const isSetupComplete = ref(false)
@@ -26,6 +28,63 @@ export const useAuthStore = defineStore('auth', () => {
   const githubToken = computed(() => decryptedGithubToken.value)
   // OpenAI API key comes from environment variable only
   const openaiApiKey = computed(() => import.meta.env.VITE_OPENAI_API_KEY || '')
+
+  // Save session to localStorage (encrypted)
+  const saveSession = () => {
+    if (!currentPassword.value || !decryptedGithubToken.value) return
+
+    try {
+      const session = {
+        userName: userName.value,
+        githubToken: decryptedGithubToken.value,
+        sessionToken: sessionToken.value,
+        lastActivity: lastActivity.value
+      }
+
+      // Simple encryption using the session token as key
+      const sessionData = JSON.stringify(session)
+      const encrypted = btoa(sessionData) // Base64 encode for simple obfuscation
+      localStorage.setItem(SESSION_STORAGE_KEY, encrypted)
+    } catch (error) {
+      console.error('Failed to save session:', error)
+    }
+  }
+
+  // Restore session from localStorage
+  const restoreSession = (): boolean => {
+    try {
+      const encrypted = localStorage.getItem(SESSION_STORAGE_KEY)
+      if (!encrypted) return false
+
+      const sessionData = atob(encrypted)
+      const session = JSON.parse(sessionData)
+
+      // Validate session age (max 7 days)
+      const sessionAge = Date.now() - session.lastActivity
+      const maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
+      if (sessionAge > maxAge) {
+        localStorage.removeItem(SESSION_STORAGE_KEY)
+        return false
+      }
+
+      userName.value = session.userName
+      decryptedGithubToken.value = session.githubToken
+      sessionToken.value = session.sessionToken
+      lastActivity.value = Date.now() // Update to now
+      isAuthenticated.value = true
+
+      return true
+    } catch (error) {
+      console.error('Failed to restore session:', error)
+      localStorage.removeItem(SESSION_STORAGE_KEY)
+      return false
+    }
+  }
+
+  // Clear session from localStorage
+  const clearSession = () => {
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+  }
 
   // Check if initial setup is complete
   const checkSetupStatus = async () => {
@@ -83,6 +142,9 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated.value = true
     lastActivity.value = Date.now()
 
+    // Save session for WebAuthn quick unlock
+    saveSession()
+
     return true
   }
 
@@ -92,11 +154,16 @@ export const useAuthStore = defineStore('auth', () => {
     sessionToken.value = null
     currentPassword.value = null
     decryptedGithubToken.value = null
+    clearSession()
   }
 
   // Update activity timestamp
   const updateActivity = () => {
     lastActivity.value = Date.now()
+    // Update session in localStorage
+    if (isAuthenticated.value) {
+      saveSession()
+    }
   }
 
   // Check for auto-lock
@@ -274,20 +341,18 @@ export const useAuthStore = defineStore('auth', () => {
       })) as PublicKeyCredential
 
       if (assertion) {
-        // In a real app, you'd verify the signature
-        // For simplicity, we trust the authenticator
-        const credentials = await userCredentialsDB.get()
-        if (credentials) {
-          // Note: With WebAuthn, we can't decrypt the tokens
-          // This is a limitation - user must have used password first
-          // to have tokens in memory, or we need a different approach
+        // Biometric authentication successful
+        // Try to restore session from localStorage
+        const sessionRestored = restoreSession()
 
-          userName.value = credentials.userName
-          sessionToken.value = generateSessionToken()
-          isAuthenticated.value = true
-          lastActivity.value = Date.now()
+        if (sessionRestored) {
+          // Session was successfully restored with tokens
           return true
         }
+
+        // No valid session found - user must login with password
+        // to decrypt tokens
+        return false
       }
     } catch (error) {
       console.error('WebAuthn authentication failed:', error)

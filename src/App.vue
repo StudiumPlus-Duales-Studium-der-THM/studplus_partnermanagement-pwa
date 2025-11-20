@@ -75,10 +75,16 @@ onMounted(() => {
   window.addEventListener('online', updateOnlineStatus)
   window.addEventListener('offline', updateOnlineStatus)
 
-  // Track user activity
+  // Track user activity - comprehensive event tracking for mobile
   window.addEventListener('click', updateActivity)
   window.addEventListener('keydown', updateActivity)
   window.addEventListener('touchstart', updateActivity)
+  window.addEventListener('touchmove', updateActivity)
+  window.addEventListener('touchend', updateActivity)
+  window.addEventListener('scroll', updateActivity, { passive: true })
+
+  // Track when user returns to the app
+  document.addEventListener('visibilitychange', updateActivity)
 
   // Check auto-lock every 30 seconds
   autoLockInterval = window.setInterval(checkAutoLock, 30000)
@@ -90,6 +96,10 @@ onUnmounted(() => {
   window.removeEventListener('click', updateActivity)
   window.removeEventListener('keydown', updateActivity)
   window.removeEventListener('touchstart', updateActivity)
+  window.removeEventListener('touchmove', updateActivity)
+  window.removeEventListener('touchend', updateActivity)
+  window.removeEventListener('scroll', updateActivity)
+  document.removeEventListener('visibilitychange', updateActivity)
 
   if (autoLockInterval) {
     clearInterval(autoLockInterval)

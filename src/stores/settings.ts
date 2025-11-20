@@ -6,7 +6,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const theme = useTheme()
 
   const darkMode = ref(localStorage.getItem('darkMode') === 'true')
-  const autoLockMinutes = ref(parseInt(localStorage.getItem('autoLockMinutes') || '5'))
+  const autoLockMinutes = ref(parseInt(localStorage.getItem('autoLockMinutes') || '15'))
   const lastCompaniesUpdate = ref(localStorage.getItem('lastCompaniesUpdate') || null)
   const showRecordingHints = ref(localStorage.getItem('showRecordingHints') !== 'false')
 
