@@ -262,8 +262,9 @@ onMounted(async () => {
   const noteId = route.params.noteId as string | undefined
   if (noteId) {
     try {
+      console.log('1. Starting to load note:', noteId)
       const note = await voiceNotesStore.getNoteById(noteId)
-      console.log('Loading note:', noteId, note)
+      console.log('2. Note retrieved from store:', note)
 
       if (!note) {
         console.error('Note not found:', noteId)
@@ -277,18 +278,22 @@ onMounted(async () => {
         return
       }
 
-      // Load the saved recording
+      console.log('3. Setting audioBlob...')
       audioBlob.value = note.audioBlob
-      // Always create a fresh blob URL to avoid revoked URLs
+      console.log('4. Creating blob URL...')
       audioBlobUrl.value = URL.createObjectURL(note.audioBlob)
-      isSaved.value = true // Already saved
-      loadedNoteId.value = noteId // Remember the note ID
-      recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2) // Rough estimate
+      console.log('5. Setting flags...')
+      isSaved.value = true
+      loadedNoteId.value = noteId
+      recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2)
 
-      console.log('Recording loaded successfully')
+      console.log('6. Recording loaded successfully')
     } catch (error) {
-      console.error('Failed to load note:', error)
-      notificationStore.error('Aufnahme konnte nicht geladen werden')
+      console.error('Failed to load note at step:', error)
+      // Only show error if audioBlob wasn't set successfully
+      if (!audioBlob.value) {
+        notificationStore.error('Aufnahme konnte nicht geladen werden')
+      }
     }
   }
 })
