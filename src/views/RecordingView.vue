@@ -223,6 +223,7 @@ const notificationStore = useNotificationStore()
 
 const {
   isRecording,
+  recordingTime,
   formattedTime,
   audioBlob,
   audioBlobUrl,
@@ -262,38 +263,29 @@ onMounted(async () => {
   const noteId = route.params.noteId as string | undefined
   if (noteId) {
     try {
-      console.log('1. Starting to load note:', noteId)
       const note = await voiceNotesStore.getNoteById(noteId)
-      console.log('2. Note retrieved from store:', note)
 
       if (!note) {
-        console.error('Note not found:', noteId)
         notificationStore.error('Aufnahme nicht gefunden')
         return
       }
 
       if (!note.audioBlob) {
-        console.error('Note has no audioBlob:', noteId)
         notificationStore.error('Aufnahme hat keine Audio-Daten')
         return
       }
 
-      console.log('3. Setting audioBlob...')
+      // Load the saved recording
       audioBlob.value = note.audioBlob
-      console.log('4. Creating blob URL...')
+      // Always create a fresh blob URL to avoid revoked URLs
       audioBlobUrl.value = URL.createObjectURL(note.audioBlob)
-      console.log('5. Setting flags...')
       isSaved.value = true
       loadedNoteId.value = noteId
+      // Set recording time based on blob size (rough estimate)
       recordingTime.value = Math.floor((note.audioBlob.size / 16000) / 2)
-
-      console.log('6. Recording loaded successfully')
     } catch (error) {
-      console.error('Failed to load note at step:', error)
-      // Only show error if audioBlob wasn't set successfully
-      if (!audioBlob.value) {
-        notificationStore.error('Aufnahme konnte nicht geladen werden')
-      }
+      console.error('Failed to load note:', error)
+      notificationStore.error('Aufnahme konnte nicht geladen werden')
     }
   }
 })
@@ -312,7 +304,6 @@ onBeforeRouteLeave(async (to, from, next) => {
   if (audioBlob.value && !isProcessing.value && !isSaved.value) {
     try {
       await voiceNotesStore.createNote(audioBlob.value)
-      console.log('Unsaved recording automatically saved before leaving view')
       notificationStore.info('Aufnahme wurde automatisch gespeichert')
     } catch (error) {
       console.error('Failed to save recording before leaving view:', error)
