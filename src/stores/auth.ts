@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { nanoid } from 'nanoid'
-import { userCredentialsDB } from '@/services/db'
+import { userCredentialsDB, authSessionsDB } from '@/services/db'
 import {
   hashPassword,
   generateSalt,
@@ -10,7 +10,7 @@ import {
   decryptFromStorage,
   generateSessionToken
 } from '@/services/encryption.service'
-import type { SetupData, UserCredentials } from '@/types'
+import type { SetupData, UserCredentials, AuthSession } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
@@ -83,15 +83,28 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated.value = true
     lastActivity.value = Date.now()
 
+    // Save session for persistence across reloads
+    await saveSession()
+
+    // Store password in sessionStorage for automatic session restore during browser session
+    // This is cleared when browser/tab is closed
+    sessionStorage.setItem('app_session_pw', password)
+
     return true
   }
 
   // Logout
-  const logout = () => {
+  const logout = async () => {
     isAuthenticated.value = false
     sessionToken.value = null
     currentPassword.value = null
     decryptedGithubToken.value = null
+
+    // Clear persisted session
+    await authSessionsDB.clear()
+
+    // Clear sessionStorage password
+    sessionStorage.removeItem('app_session_pw')
   }
 
   // Update activity timestamp
@@ -99,15 +112,78 @@ export const useAuthStore = defineStore('auth', () => {
     lastActivity.value = Date.now()
   }
 
+  // Save session to IndexedDB for persistence across reloads
+  const saveSession = async () => {
+    if (!isAuthenticated.value || !sessionToken.value || !userName.value) {
+      return
+    }
+
+    const session: AuthSession = {
+      id: 'current',
+      userName: userName.value,
+      sessionToken: sessionToken.value,
+      lastActivity: lastActivity.value,
+      createdAt: new Date()
+    }
+
+    await authSessionsDB.set(session)
+  }
+
+  // Restore session from IndexedDB
+  const restoreSession = async (password: string): Promise<boolean> => {
+    const session = await authSessionsDB.get()
+    if (!session) {
+      return false
+    }
+
+    // Re-authenticate with password to decrypt sensitive data
+    const credentials = await userCredentialsDB.get()
+    if (!credentials) {
+      // Clear invalid session
+      await authSessionsDB.clear()
+      return false
+    }
+
+    const isValid = verifyPassword(password, credentials.salt, credentials.passwordHash)
+    if (!isValid) {
+      return false
+    }
+
+    // Decrypt sensitive data
+    try {
+      decryptedGithubToken.value = decryptFromStorage(
+        credentials.githubToken,
+        password,
+        credentials.salt
+      )
+    } catch {
+      await authSessionsDB.clear()
+      return false
+    }
+
+    // Restore session state
+    currentPassword.value = password
+    userName.value = session.userName
+    sessionToken.value = session.sessionToken
+    lastActivity.value = session.lastActivity
+    isAuthenticated.value = true
+
+    // Update lastActivity to now
+    lastActivity.value = Date.now()
+    await saveSession()
+
+    return true
+  }
+
   // Check for auto-lock
-  const checkAutoLock = (autoLockMinutes: number) => {
+  const checkAutoLock = async (autoLockMinutes: number) => {
     if (autoLockMinutes === 0) return // Disabled
 
     const elapsed = Date.now() - lastActivity.value
     const autoLockMs = autoLockMinutes * 60 * 1000
 
     if (elapsed > autoLockMs) {
-      logout()
+      await logout()
     }
   }
 
@@ -193,6 +269,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     updateActivity,
+    saveSession,
+    restoreSession,
     checkAutoLock,
     changePassword,
     updateGithubToken,

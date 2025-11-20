@@ -62,9 +62,9 @@ const updateActivity = () => {
 }
 
 // Check auto-lock periodically
-const checkAutoLock = () => {
+const checkAutoLock = async () => {
   if (authStore.isAuthenticated && settingsStore.autoLockMinutes > 0) {
-    authStore.checkAutoLock(settingsStore.autoLockMinutes)
+    await authStore.checkAutoLock(settingsStore.autoLockMinutes)
     if (!authStore.isAuthenticated) {
       router.push('/auth')
     }

@@ -1,18 +1,28 @@
 import Dexie, { Table } from 'dexie'
-import type { VoiceNote, Company, UserCredentials } from '@/types'
+import type { VoiceNote, Company, UserCredentials, AuthSession } from '@/types'
 
 export class AppDatabase extends Dexie {
   voiceNotes!: Table<VoiceNote>
   companies!: Table<Company>
   userCredentials!: Table<UserCredentials>
+  authSessions!: Table<AuthSession>
 
   constructor() {
     super('StudiumPlusPartnerNotes')
 
+    // Version 1: Initial schema
     this.version(1).stores({
       voiceNotes: 'id, status, recordedAt, selectedCompanyId',
       companies: 'id, name, shortName',
       userCredentials: 'id'
+    })
+
+    // Version 2: Add authSessions table for session persistence
+    this.version(2).stores({
+      voiceNotes: 'id, status, recordedAt, selectedCompanyId',
+      companies: 'id, name, shortName',
+      userCredentials: 'id',
+      authSessions: 'id'
     })
   }
 }
@@ -109,9 +119,32 @@ export const userCredentialsDB = {
   }
 }
 
+// Auth Sessions operations
+export const authSessionsDB = {
+  async get(): Promise<AuthSession | undefined> {
+    const all = await db.authSessions.toArray()
+    return all[0]
+  },
+
+  async set(session: AuthSession): Promise<void> {
+    await db.authSessions.clear()
+    await db.authSessions.add(session)
+  },
+
+  async clear(): Promise<void> {
+    await db.authSessions.clear()
+  },
+
+  async exists(): Promise<boolean> {
+    const count = await db.authSessions.count()
+    return count > 0
+  }
+}
+
 // Clear all data
 export const clearAllData = async (): Promise<void> => {
   await db.voiceNotes.clear()
   await db.companies.clear()
   await db.userCredentials.clear()
+  await db.authSessions.clear()
 }
