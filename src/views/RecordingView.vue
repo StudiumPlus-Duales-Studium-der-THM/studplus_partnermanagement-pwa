@@ -207,7 +207,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useAudioRecorder } from '@/composables/useAudioRecorder'
 import { useProcessing } from '@/composables/useProcessing'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
@@ -257,23 +257,28 @@ onMounted(() => {
   window.addEventListener('offline', updateOnlineStatus)
 })
 
-onUnmounted(async () => {
+onUnmounted(() => {
   window.removeEventListener('online', updateOnlineStatus)
   window.removeEventListener('offline', updateOnlineStatus)
   if (animationId) {
     cancelAnimationFrame(animationId)
   }
+})
 
-  // Save recording before leaving the view if it hasn't been processed
+// Save recording before leaving the route
+onBeforeRouteLeave(async (to, from, next) => {
   // If there's an audioBlob that hasn't been saved yet, save it automatically
   if (audioBlob.value && !isProcessing.value && !isSaved.value) {
     try {
       await voiceNotesStore.createNote(audioBlob.value)
       console.log('Unsaved recording automatically saved before leaving view')
+      notificationStore.info('Aufnahme wurde automatisch gespeichert')
     } catch (error) {
       console.error('Failed to save recording before leaving view:', error)
+      notificationStore.error('Fehler beim Speichern der Aufnahme')
     }
   }
+  next()
 })
 
 // Waveform visualization
