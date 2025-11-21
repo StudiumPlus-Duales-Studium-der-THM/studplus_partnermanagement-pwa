@@ -213,7 +213,7 @@ const getCompanyName = (companyId?: string): string | null => {
   // Check if it's an ID from the companies list
   const company = companiesStore.getCompanyById(companyId)
   if (company) {
-    return company.name
+    return company.shortName
   }
 
   // Otherwise it's a manually entered company name
