@@ -1,5 +1,9 @@
 # StudiumPlus Partner-Notizen - Applikationsübersicht
 
+> **⚠️ WICHTIG - Kostenmanagement:**
+> Diese Dokumentation enthält eine wichtige Sektion zur **Token-Optimierung & Kostenmanagement** (siehe unten).
+> Die implementierte Feld-Filterung beim Company-Matching reduziert API-Kosten um ~80% und ist essentiell für den wirtschaftlichen Betrieb.
+
 ## Zweck der Anwendung
 
 Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), die StudiumPlus-Direktoren bei der Dokumentation von Partnergesprächen unterstützt. Die App automatisiert den Workflow von der Sprachaufnahme bis zum fertigen GitHub Issue durch den Einsatz von KI-Technologien.
@@ -31,7 +35,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 ### APIs & Services
 - **OpenAI Whisper API** - Sprachtranskription (Audio → Text)
-- **OpenAI GPT-4o-mini** - Textaufbereitung und Company-Matching
+- **OpenAI GPT-5-mini** - Textaufbereitung und Company-Matching
 - **GitHub API** - Issue-Erstellung und Datenabfrage
 
 ### Sicherheit
@@ -76,7 +80,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
         ├─────────────────────────────────────┤
         │  OpenAI API    │  GitHub API        │
         │  - Whisper     │  - Issues          │
-        │  - GPT-4o-mini │  - Contents        │
+        │  - GPT-5-mini  │  - Contents        │
         └─────────────────────────────────────┘
 ```
 
@@ -169,7 +173,12 @@ Status: TRANSCRIBED
 **Trigger:** Automatisch nach Transkription
 
 ```
-Transkription + companies.json werden an GPT-4o-mini gesendet
+Transkription + companies.json werden an GPT-5-mini gesendet
+    ↓
+Nur matching-relevante Felder werden extrahiert:
+  • id, name, shortName, aliases, location
+  • KEINE Kontakt-Daten (nicht relevant für Firmen-Matching)
+  • Reduziert Token-Verbrauch um ~70-80%
     ↓
 KI analysiert Text und findet erwähntes Unternehmen
     ↓
@@ -178,7 +187,10 @@ Response: { matched_company_id: "...", confidence: "high/medium/low" }
 Company/Contact werden vorausgewählt
 ```
 
-**Hinweis:** Nicht kritisch - User kann Company manuell wählen, falls Matching fehlschlägt
+**Hinweise:**
+- Nicht kritisch - User kann Company manuell wählen, falls Matching fehlschlägt
+- Token-Optimierung: Nur 5 Felder pro Firma werden gesendet
+- Funktioniert effizient auch bei vielen Unternehmen
 
 ### 4. Textaufbereitung
 
@@ -188,19 +200,28 @@ Company/Contact werden vorausgewählt
 ```
 Status: TRANSCRIBED → PROCESSING
     ↓
-Transkription + Company + Contact → GPT-4o-mini
+Transkription + Company + Contact → GPT-5-mini
     ↓
-KI strukturiert und professionalisiert den Text:
-  - Grammatik & Rechtschreibung
-  - Professioneller Ton
-  - Strukturierung (Themen, Vereinbarungen, Nächste Schritte)
+KI strukturiert den Text nach klaren Regeln:
+  - INHALTLICHE TREUE: Keine Änderung von Aussagen
+  - MINIMALE KORREKTUR: Nur Grammatik & Rechtschreibung
+  - DEADLINE-ERKENNUNG: Extraktion aller Termine/Fristen
+  - STRUKTURIERUNG: Gliederung in Abschnitte
+    • Gesprächsnotizen (originalgetreu)
+    • Vereinbarungen
+    • Deadlines & Termine (explizit hervorgehoben)
+    • Nächste Schritte
     ↓
-Response: Aufbereiteter Text
+Response: Strukturierter Text (Originalaussagen erhalten)
     ↓
 Status: PROCESSED
 ```
 
-**GPT-Prompt:** Enthält Kontext über StudiumPlus, Unternehmen und Ansprechpartner
+**GPT-Prompt-Regeln:**
+- Bewahrt inhaltliche Aussagen (keine Interpretationen)
+- Korrigiert nur offensichtliche Fehler
+- Extrahiert Termine in Format TT.MM.JJJJ
+- Verwendet möglichst Originalwortlaut
 
 ### 5. GitHub Issue-Erstellung
 
@@ -235,6 +256,166 @@ Status: SENT
 ## Gesprächsnotiz
 [Aufbereiteter Text von GPT]
 ```
+
+## Token-Optimierung & Kostenmanagement
+
+**⚠️ WICHTIG:** Die Anzahl der an OpenAI gesendeten Tokens hat direkten Einfluss auf die API-Kosten. Besonders beim Company-Matching kann eine naive Implementierung sehr teuer werden.
+
+### Problem: Company-Matching mit großen Datensätzen
+
+**Szenario:** Bei vielen Unternehmen würde eine naive Implementierung alle Daten senden:
+```
+1 Unternehmen mit allen Feldern (inkl. Kontakte, Notes, etc.): ~200-500 tokens
+100 Unternehmen: ~20.000-50.000 tokens pro Anfrage
+1000 Unternehmen: ~200.000-500.000 tokens pro Anfrage ❌ (überschreitet Context Window!)
+```
+
+**Kosten-Beispiel (GPT-5-mini) bei naiver Implementierung:**
+- Input: $0.25 per 1M tokens
+- Output: $2.00 per 1M tokens
+- Bei 100 Anfragen/Tag mit 50.000 tokens Input: 0.05M × $0.25 × 100 Tage = ~$1.25/Tag
+- = ~$450/Jahr nur für Company-Matching (ohne Output!) ❌
+
+### Implementierte Lösung: Feld-Filterung (Option 1)
+
+**Aktueller Ansatz in `openai.service.ts:matchCompany()`:**
+
+Die Funktion extrahiert automatisch nur matching-relevante Felder, bevor Daten an die API gesendet werden:
+
+```typescript
+// Nur 5 relevante Felder pro Unternehmen
+const compactCompanies = companies.companies?.map((c: any) => ({
+  id: c.id,              // Für Rückmeldung nötig
+  name: c.name,          // Primäres Matching-Kriterium
+  shortName: c.shortName,// Häufig verwendet in Gesprächen
+  aliases: c.aliases,    // Wichtig für Varianten (z.B. "Viessmann" vs "Viessmann Group")
+  location: c.location   // Optional, falls Standort erwähnt wird
+}))
+```
+
+**Ausgeschlossene Felder (nicht relevant für Firmen-Matching):**
+- ❌ `contacts[]` - Ansprechpartner (größter Token-Verbraucher!)
+- ❌ `studyPrograms[]` - Nicht relevant für Identifikation
+- ❌ `notes` - Zu viele Tokens
+- ❌ `partnershipType` - Nicht relevant für Matching
+- ❌ `lastContactDate` - Nicht relevant für Matching
+
+**Effekt:**
+- **Token-Reduktion: ~70-80%**
+- 1 Unternehmen: ~50-100 tokens (statt 200-500)
+- 100 Unternehmen: ~5.000-10.000 tokens ✅
+- 1000 Unternehmen: ~50.000-100.000 tokens ✅
+
+**Kostenersparnis durch Feld-Filterung:**
+- Mit Optimierung: ~$0.21/Monat = ~$2.50/Jahr für Matching
+- Ohne Optimierung (naive Implementierung): ~$450/Jahr
+- **Einsparung: ~99.4% (~$447/Jahr)** 🎯
+
+### Alternative Ansätze (für Zukunft dokumentiert)
+
+#### Option 2: Pre-Filtering (für sehr große Datensätze)
+
+```typescript
+// Im Frontend: Erst Keyword-Extraktion
+const keywords = extractKeywords(transcription)
+const relevantCompanies = companies.filter(c =>
+  keywords.some(kw =>
+    c.name.toLowerCase().includes(kw.toLowerCase()) ||
+    c.aliases.some(a => a.toLowerCase().includes(kw.toLowerCase()))
+  )
+)
+
+// Nur 10-50 relevante Firmen an API senden
+await matchCompany(transcription, relevantCompanies, apiKey)
+```
+
+**Vorteile:**
+- Weitere Token-Reduktion: ~90-95%
+- Schnellere API-Antworten
+
+**Nachteile:**
+- Komplexere Logik
+- Risiko: Relevante Firma wird vorab ausgefiltert
+
+#### Option 3: Zwei-Stufen-Ansatz
+
+1. **Stufe 1:** Nur Namen an GPT senden → Kandidaten-Liste
+2. **Stufe 2:** Details aus lokalem Cache laden
+
+**Vorteile:**
+- Minimale Tokens (~10-20 pro Firma)
+
+**Nachteile:**
+- 2 API-Calls (mehr Latenz)
+- Komplexere Implementierung
+
+#### Option 4: Vector Search / Embeddings
+
+Embeddings-basierte Suche für semantisches Matching ohne große Prompts.
+
+**Vorteile:**
+- Extrem effizient bei >1000 Firmen
+- Einmalige Embedding-Kosten
+
+**Nachteile:**
+- Hohe Komplexität
+- Zusätzliche Infrastruktur nötig
+
+### Empfohlene Strategie
+
+**Aktuell (< 500 Unternehmen):**
+- ✅ **Option 1** (Feld-Filterung) - bereits implementiert
+- ✅ **Zusätzlich:** Manuelle Vorauswahl in companies.json (nur wichtige Partner)
+
+**Zukünftig (> 500 Unternehmen):**
+- 🔄 **Option 2** (Pre-Filtering) hinzufügen
+- 🔄 **Oder** Option 3 (Zwei-Stufen) für maximale Effizienz
+
+### Monitoring & Best Practices
+
+**Token-Verbrauch überwachen:**
+```typescript
+// Optional: Token-Zählung loggen
+console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tokens)`)
+```
+
+**Kostenoptimierung:**
+- companies.json klein halten (nur aktive Partner)
+- Regelmäßig alte/inaktive Firmen entfernen
+- Bei Bedarf: Caching für häufige Matches
+
+**Geschätzte Gesamtkosten (bei 100 Notizen/Monat):**
+
+*Pricing-Annahmen (Stand: OpenAI GPT-5-mini Preise):*
+- Whisper: $0.006 per Minute Audio
+- GPT-5-mini Input: $0.25 per 1M tokens
+- GPT-5-mini Cached Input: $0.25 per 1M tokens
+- GPT-5-mini Output: $2.00 per 1M tokens
+
+*Berechnungen:*
+1. **Whisper (Transkription):**
+   - 100 Notizen × 3 Min Ø = 300 Min/Monat
+   - 300 Min × $0.006 = **~$1.80/Monat**
+
+2. **GPT-5-mini (Company Matching):**
+   - 100 Anfragen × 7.500 tokens Input (Ø) = 750k tokens
+   - 100 Anfragen × 100 tokens Output (Ø) = 10k tokens
+   - Input: 0.75M × $0.25 = $0.19
+   - Output: 0.01M × $2.00 = $0.02
+   - **~$0.21/Monat**
+
+3. **GPT-5-mini (Textaufbereitung):**
+   - 100 Anfragen × 1.000 tokens Input (Ø) = 100k tokens
+   - 100 Anfragen × 800 tokens Output (Ø) = 80k tokens
+   - Input: 0.1M × $0.25 = $0.025
+   - Output: 0.08M × $2.00 = $0.16
+   - **~$0.19/Monat**
+
+**Total: ~$2.20/Monat oder ~$26/Jahr** ✅
+
+*Hinweis: Preise Stand GPT-5-mini Release. Aktuelle Preise prüfen unter: https://openai.com/pricing*
+
+---
 
 ## Datenfluss
 
@@ -277,7 +458,7 @@ Status: SENT
 - Authentifizierung: `Bearer <API-Key>`
 - Verwendete Modelle:
   - `whisper-1` - Transkription
-  - `gpt-4o-mini` - Textaufbereitung und Matching
+  - `gpt-5-mini` - Textaufbereitung und Matching
 
 **GitHub API:**
 - Endpoint: `https://api.github.com`

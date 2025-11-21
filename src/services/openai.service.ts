@@ -39,12 +39,26 @@ export const transcribeAudio = async (
 
 /**
  * Matches a company from the transcription
+ * Note: Only sends matching-relevant fields to reduce token usage.
+ * Contacts and other detailed data are excluded as they're not relevant for company identification.
  */
 export const matchCompany = async (
   transcription: string,
   companiesJson: string,
   apiKey: string
 ): Promise<CompanyMatchResult> => {
+  // Parse and extract only matching-relevant fields to reduce token usage
+  const companies = JSON.parse(companiesJson)
+  const compactCompanies = companies.companies?.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    shortName: c.shortName,
+    aliases: c.aliases || [],
+    location: c.location
+  })) || []
+
+  const compactJson = JSON.stringify(compactCompanies, null, 2)
+
   const prompt = `Du bist ein Assistent für StudiumPlus. Analysiere folgende Gesprächsnotiz und identifiziere das erwähnte Partnerunternehmen aus der Liste.
 
 Gesprächsnotiz:
@@ -54,10 +68,10 @@ ${transcription}
 
 Verfügbare Unternehmen (JSON):
 """
-${companiesJson}
+${compactJson}
 """
 
-WICHTIG: Suche nach Namen, Alias, oder Hinweisen im Text. Antworte NUR mit gültigem JSON in diesem Format:
+WICHTIG: Suche nach Namen, Alias, Standort oder Hinweisen im Text. Antworte NUR mit gültigem JSON in diesem Format:
 {
   "matched_company_id": "string oder null",
   "confidence": "high/medium/low",
@@ -67,7 +81,7 @@ WICHTIG: Suche nach Namen, Alias, oder Hinweisen im Text. Antworte NUR mit gült
 Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
 
   const request: OpenAIChatRequest = {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',
     messages: [
       {
         role: 'user',
@@ -110,30 +124,39 @@ Eingaben:
 - Rohe Gesprächsnotiz: """${transcription}"""
 
 Aufgabe:
-Erstelle einen strukturierten, professionellen Text mit folgenden Abschnitten:
-1. Gesprächsnotizen (Hauptinhalt, erweitert und sprachlich verbessert)
-2. Vereinbarungen (falls erwähnt, als Liste)
-3. Nächste Schritte (falls erwähnt, als Liste)
+Strukturiere die Gesprächsnotiz in folgende Abschnitte und analysiere Deadlines/Termine.
 
-Anforderungen:
-- Vollständige Sätze, korrekte Grammatik und Zeichensetzung
-- Sachlicher, professioneller Ton
-- Ergänze fehlende Artikel, Präpositionen
-- Keine Erfindungen, bleibe beim Inhalt der Notiz
-- Falls Datum erwähnt: In Standardformat (TT.MM.JJJJ)
+WICHTIGE REGELN:
+1. INHALTLICHE TREUE: Verändere KEINE inhaltlichen Aussagen. Bewahre die Originalaussagen.
+2. MINIMALE KORREKTUR: Korrigiere NUR offensichtliche Grammatik- und Rechtschreibfehler.
+3. KEINE INTERPRETATIONEN: Füge keine eigenen Interpretationen oder Bewertungen hinzu.
+4. KEINE ERFINDUNGEN: Erfinde keine Details, die nicht in der Notiz erwähnt wurden.
+5. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
+6. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
+7. DATUMFORMAT: Wandle Datumsangaben in das Format TT.MM.JJJJ um.
+8. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
+
+Sprachliche Korrekturen (nur diese sind erlaubt):
+- Ergänze fehlende Artikel (der/die/das/ein/eine)
+- Ergänze fehlende Präpositionen (zu/von/mit/bei/über)
+- Korrigiere Verb-Konjugationen
+- Vervollständige unvollständige Sätze minimal
 
 Antworte im Format:
 ## Gesprächsnotizen
-[Text]
+[Hauptinhalt mit minimalsten Korrekturen, originalgetreu]
 
 ## Vereinbarungen
-[Liste oder "Keine expliziten Vereinbarungen getroffen."]
+[Liste der Vereinbarungen, oder "Keine expliziten Vereinbarungen getroffen."]
+
+## Deadlines & Termine
+[Alle erwähnten Termine/Fristen mit Datum im Format TT.MM.JJJJ, oder "Keine Termine genannt."]
 
 ## Nächste Schritte
-[Liste oder "Keine konkreten nächsten Schritte festgelegt."]`
+[Liste der nächsten Schritte, oder "Keine konkreten nächsten Schritte festgelegt."]`
 
   const request: OpenAIChatRequest = {
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',
     messages: [
       {
         role: 'user',

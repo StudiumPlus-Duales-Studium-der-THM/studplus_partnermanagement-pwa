@@ -22,7 +22,7 @@ Entwickle eine Progressive Web App (PWA) mit Vue.js, mit der Direktoren von Stud
 
 ### APIs & Services
 - **Speech-to-Text:** OpenAI Whisper API
-- **Text-Aufbereitung:** OpenAI GPT-4o-mini API (aktuelles Modell, später Umstellung auf nele.ai vorbereiten)
+- **Text-Aufbereitung:** OpenAI GPT-5-mini API (aktuelles Modell, später Umstellung auf nele.ai vorbereiten)
 - **Ticketing:** GitHub REST API v3
 - **Repository:** `https://github.com/StudiumPlus-Duales-Studium-der-THM/studiumplus-partner-management.git` (private)
 
@@ -271,7 +271,9 @@ const stopRecording = () => {
 - Transkription in VoiceNote speichern (status: transcribed)
 
 **Schritt 2: Unternehmens-Matching**
-- Transkription + Liste der companies.json an GPT-4o-mini senden
+- Transkription + Liste der companies.json an GPT-5-mini senden
+- **Token-Optimierung:** Nur matching-relevante Felder werden extrahiert (id, name, shortName, aliases, location)
+- Keine Kontakt-Daten werden gesendet (nicht relevant für Firmen-Matching)
 - Prompt:
   ```
   Du bist ein Assistent für StudiumPlus. Analysiere folgende Gesprächsnotiz und identifiziere das erwähnte Partnerunternehmen aus der Liste.
@@ -298,38 +300,47 @@ const stopRecording = () => {
 - Response parsen, Unternehmen vorschlagen
 
 **Schritt 3: Text-Aufbereitung**
-- Transkription + ausgewähltes Unternehmen + Ansprechpartner an GPT-4o-mini
+- Transkription + ausgewähltes Unternehmen + Ansprechpartner an GPT-5-mini
 - Prompt:
   ```
   Du bist ein Assistent für StudiumPlus und hilfst, Gesprächsnotizen professionell aufzubereiten.
-  
+
   Eingaben:
   - Unternehmen: [NAME]
   - Ansprechpartner: [VORNAME NACHNAME, ROLLE]
   - Rohe Gesprächsnotiz: """[TRANSKRIPTION]"""
-  
+
   Aufgabe:
-  Erstelle einen strukturierten, professionellen Text mit folgenden Abschnitten:
-  1. Gesprächsnotizen (Hauptinhalt, erweitert und sprachlich verbessert)
-  2. Vereinbarungen (falls erwähnt, als Liste)
-  3. Nächste Schritte (falls erwähnt, als Liste)
-  
-  Anforderungen:
-  - Vollständige Sätze, korrekte Grammatik und Zeichensetzung
-  - Sachlicher, professioneller Ton
-  - Ergänze fehlende Artikel, Präpositionen
-  - Keine Erfindungen, bleibe beim Inhalt der Notiz
-  - Falls Datum erwähnt: In Standardformat (TT.MM.JJJJ)
-  
+  Strukturiere die Gesprächsnotiz in folgende Abschnitte und analysiere Deadlines/Termine.
+
+  WICHTIGE REGELN:
+  1. INHALTLICHE TREUE: Verändere KEINE inhaltlichen Aussagen. Bewahre die Originalaussagen.
+  2. MINIMALE KORREKTUR: Korrigiere NUR offensichtliche Grammatik- und Rechtschreibfehler.
+  3. KEINE INTERPRETATIONEN: Füge keine eigenen Interpretationen oder Bewertungen hinzu.
+  4. KEINE ERFINDUNGEN: Erfinde keine Details, die nicht in der Notiz erwähnt wurden.
+  5. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
+  6. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
+  7. DATUMFORMAT: Wandle Datumsangaben in das Format TT.MM.JJJJ um.
+  8. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
+
+  Sprachliche Korrekturen (nur diese sind erlaubt):
+  - Ergänze fehlende Artikel (der/die/das/ein/eine)
+  - Ergänze fehlende Präpositionen (zu/von/mit/bei/über)
+  - Korrigiere Verb-Konjugationen
+  - Vervollständige unvollständige Sätze minimal
+
   Antworte im Format:
   ## Gesprächsnotizen
-  [Text]
-  
+  [Hauptinhalt mit minimalsten Korrekturen, originalgetreu]
+
   ## Vereinbarungen
-  [Liste oder "Keine expliziten Vereinbarungen getroffen."]
-  
+  [Liste der Vereinbarungen, oder "Keine expliziten Vereinbarungen getroffen."]
+
+  ## Deadlines & Termine
+  [Alle erwähnten Termine/Fristen mit Datum im Format TT.MM.JJJJ, oder "Keine Termine genannt."]
+
   ## Nächste Schritte
-  [Liste oder "Keine konkreten nächsten Schritte festgelegt."]
+  [Liste der nächsten Schritte, oder "Keine konkreten nächsten Schritte festgelegt."]
   ```
 - Response in VoiceNote speichern (status: processed)
 
@@ -627,7 +638,7 @@ const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 - Base URL: `https://api.openai.com/v1`
 - Modelle:
   - Whisper: `whisper-1`
-  - GPT: `gpt-4o-mini`
+  - GPT: `gpt-5-mini`
 
 **GitHub API:**
 - Base URL: `https://api.github.com`
