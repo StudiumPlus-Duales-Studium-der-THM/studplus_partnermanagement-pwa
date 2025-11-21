@@ -2,7 +2,7 @@
 
 > **⚠️ WICHTIG - Kostenmanagement:**
 > Diese Dokumentation enthält eine wichtige Sektion zur **Token-Optimierung & Kostenmanagement** (siehe unten).
-> Die implementierte Feld-Filterung beim Company-Matching reduziert API-Kosten um ~80% und ist essentiell für den wirtschaftlichen Betrieb.
+> Die implementierte Feld-Filterung beim Company-Matching reduziert API-Kosten deutlich (>90%) und ist essentiell für den wirtschaftlichen Betrieb.
 
 ## Zweck der Anwendung
 
@@ -205,11 +205,13 @@ Transkription + Company + Contact → GPT-5-mini
 KI strukturiert den Text nach klaren Regeln:
   - INHALTLICHE TREUE: Keine Änderung von Aussagen
   - MINIMALE KORREKTUR: Nur Grammatik & Rechtschreibung
+  - GESPRÄCHSDATUM-ERKENNUNG: Explizite Extraktion des Gesprächsdatums (nicht Aufzeichnungsdatum!)
   - DEADLINE-ERKENNUNG: Extraktion aller Termine/Fristen
   - STRUKTURIERUNG: Gliederung in Abschnitte
+    • Gesprächsdatum (dedizierte Extraktion)
     • Gesprächsnotizen (originalgetreu)
     • Vereinbarungen
-    • Deadlines & Termine (explizit hervorgehoben)
+    • Deadlines & Termine (zukünftige Termine)
     • Nächste Schritte
     ↓
 Response: Strukturierter Text (Originalaussagen erhalten)
@@ -220,7 +222,8 @@ Status: PROCESSED
 **GPT-Prompt-Regeln:**
 - Bewahrt inhaltliche Aussagen (keine Interpretationen)
 - Korrigiert nur offensichtliche Fehler
-- Extrahiert Termine in Format TT.MM.JJJJ
+- **Extrahiert Gesprächsdatum explizit** (Regel 5: sucht nach "Gespräch am...", "heute", etc.)
+- Extrahiert alle Termine/Deadlines in Format TT.MM.JJJJ
 - Verwendet möglichst Originalwortlaut
 
 ### 5. GitHub Issue-Erstellung
@@ -413,7 +416,7 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 
 **Total: ~$2.20/Monat oder ~$26/Jahr** ✅
 
-*Hinweis: Preise Stand GPT-5-mini Release. Aktuelle Preise prüfen unter: https://openai.com/pricing*
+*Hinweis: Preise Stand August 2025 (GPT-5-mini Release). Aktuelle Preise prüfen unter: https://openai.com/pricing*
 
 ---
 
@@ -460,12 +463,18 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
   - `whisper-1` - Transkription
   - `gpt-5-mini` - Textaufbereitung und Matching
 
+**GPT-5 API-Unterschiede:**
+- ⚠️ Verwendet `max_completion_tokens` statt `max_tokens`
+- ⚠️ `temperature` Parameter nicht unterstützt (nur Standard-Wert 1)
+- ⚠️ Unterschiedliche Token-Limits: 272k Input, 128k Output (inkl. Reasoning)
+
 **GitHub API:**
 - Endpoint: `https://api.github.com`
 - Authentifizierung: `token <GitHub-PAT>`
 - Verwendete Endpoints:
   - `POST /repos/{owner}/{repo}/issues` - Issue erstellen
   - `GET /repos/{owner}/{repo}/contents/companies.json` - Unternehmensdaten
+- Hinweis: User-Agent Header kann in Browsern nicht gesetzt werden (Sicherheitsrestriktion)
 
 ## Sicherheitskonzept
 

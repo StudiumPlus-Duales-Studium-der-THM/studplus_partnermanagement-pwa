@@ -11,7 +11,8 @@ export interface OpenAIChatRequest {
   model: string
   messages: OpenAIChatMessage[]
   temperature?: number
-  max_tokens?: number
+  max_tokens?: number // For GPT-4o, GPT-4o-mini (deprecated in GPT-5)
+  max_completion_tokens?: number // For GPT-5, GPT-5-mini (required for GPT-5 models)
 }
 
 export interface OpenAIChatResponse {

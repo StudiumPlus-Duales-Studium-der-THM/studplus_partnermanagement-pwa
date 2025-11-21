@@ -33,8 +33,8 @@ export const createIssue = async (
       headers: {
         Authorization: `token ${token}`,
         Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
+        'Content-Type': 'application/json'
+        // Note: User-Agent cannot be set in browsers (security restriction)
       }
     }
   )
@@ -51,8 +51,8 @@ export const fetchCompanies = async (token: string): Promise<CompaniesData> => {
     {
       headers: {
         Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
+        Accept: 'application/vnd.github.v3+json'
+        // Note: User-Agent cannot be set in browsers (security restriction)
       }
     }
   )
@@ -73,8 +73,8 @@ export const validateToken = async (
     const response = await axios.get(`${GITHUB_API_BASE}/rate_limit`, {
       headers: {
         Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
+        Accept: 'application/vnd.github.v3+json'
+        // Note: User-Agent cannot be set in browsers (security restriction)
       }
     })
 
@@ -111,8 +111,8 @@ export const checkTokenPermissions = async (
       {
         headers: {
           Authorization: `token ${token}`,
-          Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
+          Accept: 'application/vnd.github.v3+json'
+          // Note: User-Agent cannot be set in browsers (security restriction)
         }
       }
     )
@@ -126,8 +126,8 @@ export const checkTokenPermissions = async (
     await axios.get(`${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/issues?per_page=1`, {
       headers: {
         Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
+        Accept: 'application/vnd.github.v3+json'
+        // Note: User-Agent cannot be set in browsers (security restriction)
       }
     })
     canWriteIssues = true // If we can read, we likely can write

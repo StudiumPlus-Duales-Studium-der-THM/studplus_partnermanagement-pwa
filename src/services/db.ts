@@ -71,8 +71,10 @@ export const companiesDB = {
   },
 
   async setAll(companies: Company[]): Promise<void> {
+    // Use bulkPut to overwrite existing records instead of bulkAdd
+    // This prevents "Key already exists" errors during hot reload or multiple calls
     await db.companies.clear()
-    await db.companies.bulkAdd(companies)
+    await db.companies.bulkPut(companies)
   },
 
   async search(query: string): Promise<Company[]> {

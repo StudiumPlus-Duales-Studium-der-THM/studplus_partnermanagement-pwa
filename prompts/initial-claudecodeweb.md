@@ -318,10 +318,14 @@ const stopRecording = () => {
   2. MINIMALE KORREKTUR: Korrigiere NUR offensichtliche Grammatik- und Rechtschreibfehler.
   3. KEINE INTERPRETATIONEN: Füge keine eigenen Interpretationen oder Bewertungen hinzu.
   4. KEINE ERFINDUNGEN: Erfinde keine Details, die nicht in der Notiz erwähnt wurden.
-  5. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
-  6. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
-  7. DATUMFORMAT: Wandle Datumsangaben in das Format TT.MM.JJJJ um.
-  8. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
+  5. GESPRÄCHSDATUM-ERKENNUNG: Suche EXPLIZIT nach dem Datum, an dem das Gespräch stattfand.
+     - Achte auf Formulierungen wie: "Gespräch am...", "Telefonat vom...", "Meeting am...", "heute", "gestern"
+     - Das Gesprächsdatum ist NICHT das Aufzeichnungsdatum!
+     - Falls kein Datum erwähnt wird, schreibe "Nicht im Transkript erwähnt"
+  6. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
+  7. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
+  8. DATUMFORMAT: Wandle alle Datumsangaben in das Format TT.MM.JJJJ um.
+  9. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
 
   Sprachliche Korrekturen (nur diese sind erlaubt):
   - Ergänze fehlende Artikel (der/die/das/ein/eine)
@@ -330,6 +334,9 @@ const stopRecording = () => {
   - Vervollständige unvollständige Sätze minimal
 
   Antworte im Format:
+  ## Gesprächsdatum
+  [Datum im Format TT.MM.JJJJ, oder "Nicht im Transkript erwähnt"]
+
   ## Gesprächsnotizen
   [Hauptinhalt mit minimalsten Korrekturen, originalgetreu]
 
@@ -640,9 +647,14 @@ const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
   - Whisper: `whisper-1`
   - GPT: `gpt-5-mini`
 
+**GPT-5 API-Unterschiede zu GPT-4o:**
+- Verwendet `max_completion_tokens` statt `max_tokens`
+- `temperature` Parameter nicht unterstützt (nur Wert 1)
+- Kann mit Reasoning Levels betrieben werden (minimal/low/medium/high)
+
 **GitHub API:**
 - Base URL: `https://api.github.com`
-- User-Agent Header: `StudiumPlus-Partner-PWA/1.0`
+- Hinweis: User-Agent Header kann in Browsern nicht gesetzt werden (Sicherheitsrestriktion)
 
 ### 5.4 Error Handling
 

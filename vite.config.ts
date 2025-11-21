@@ -9,7 +9,9 @@ export default defineConfig({
   plugins: [
     vue(),
     vuetify({ autoImport: true }),
-    basicSsl(),
+    // Note: basicSsl() disabled for development to avoid SSL certificate errors
+    // Service Worker works on localhost with HTTP
+    // basicSsl(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
@@ -67,7 +69,9 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: true
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html'
       }
     })
   ],

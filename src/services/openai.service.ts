@@ -88,8 +88,8 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
         content: prompt
       }
     ],
-    temperature: 0.3,
-    max_tokens: 200
+    // Note: GPT-5 only supports temperature=1 (default), custom values not allowed
+    max_completion_tokens: 200
   }
 
   const response = await axios.post<OpenAIChatResponse>(
@@ -104,7 +104,22 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
   )
 
   const content = response.data.choices[0].message.content
-  return JSON.parse(content) as CompanyMatchResult
+
+  // GPT-5 might add text before/after JSON, so we need to extract it
+  try {
+    // Try to parse directly first
+    return JSON.parse(content) as CompanyMatchResult
+  } catch (error) {
+    // If direct parse fails, try to extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as CompanyMatchResult
+    }
+
+    // If no JSON found, throw with helpful error
+    console.error('Company matching response:', content)
+    throw new Error(`Failed to parse company matching response: ${content.substring(0, 200)}`)
+  }
 }
 
 /**
@@ -131,10 +146,14 @@ WICHTIGE REGELN:
 2. MINIMALE KORREKTUR: Korrigiere NUR offensichtliche Grammatik- und Rechtschreibfehler.
 3. KEINE INTERPRETATIONEN: Füge keine eigenen Interpretationen oder Bewertungen hinzu.
 4. KEINE ERFINDUNGEN: Erfinde keine Details, die nicht in der Notiz erwähnt wurden.
-5. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
-6. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
-7. DATUMFORMAT: Wandle Datumsangaben in das Format TT.MM.JJJJ um.
-8. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
+5. GESPRÄCHSDATUM-ERKENNUNG: Suche EXPLIZIT nach dem Datum, an dem das Gespräch stattfand.
+   - Achte auf Formulierungen wie: "Gespräch am...", "Telefonat vom...", "Meeting am...", "heute", "gestern", "letzte Woche"
+   - Das Gesprächsdatum ist NICHT das Aufzeichnungsdatum!
+   - Falls kein Datum erwähnt wird, schreibe "Nicht im Transkript erwähnt"
+6. DEADLINE-ERKENNUNG: Identifiziere und extrahiere alle Termine, Fristen und Deadlines explizit.
+7. STRUKTURIERUNG: Gliedere den Inhalt in die vorgegebenen Abschnitte, ohne die Aussagen zu verändern.
+8. DATUMFORMAT: Wandle alle Datumsangaben in das Format TT.MM.JJJJ um.
+9. ORIGINALWORTLAUT: Verwende möglichst den Originalwortlaut, nur mit Grammatikkorrekturen.
 
 Sprachliche Korrekturen (nur diese sind erlaubt):
 - Ergänze fehlende Artikel (der/die/das/ein/eine)
@@ -143,6 +162,9 @@ Sprachliche Korrekturen (nur diese sind erlaubt):
 - Vervollständige unvollständige Sätze minimal
 
 Antworte im Format:
+## Gesprächsdatum
+[Datum im Format TT.MM.JJJJ, oder "Nicht im Transkript erwähnt"]
+
 ## Gesprächsnotizen
 [Hauptinhalt mit minimalsten Korrekturen, originalgetreu]
 
@@ -163,8 +185,8 @@ Antworte im Format:
         content: prompt
       }
     ],
-    temperature: 0.5,
-    max_tokens: 1500
+    // Note: GPT-5 only supports temperature=1 (default), custom values not allowed
+    max_completion_tokens: 1500
   }
 
   const response = await axios.post<OpenAIChatResponse>(

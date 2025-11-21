@@ -10,9 +10,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const lastCompaniesUpdate = ref(localStorage.getItem('lastCompaniesUpdate') || null)
   const showRecordingHints = ref(localStorage.getItem('showRecordingHints') !== 'false')
 
-  // Apply dark mode
+  // Apply dark mode using Vuetify 3 API
   watch(darkMode, (value) => {
-    theme.global.name.value = value ? 'dark' : 'light'
+    const themeName = value ? 'dark' : 'light'
+    // Vuetify 3.5.x compatible API
+    theme.global.name.value = themeName
     localStorage.setItem('darkMode', String(value))
   }, { immediate: true })
 
