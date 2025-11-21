@@ -23,20 +23,11 @@
           <v-list-item @click="filterStatus = NoteStatus.RECORDED">
             <v-list-item-title>Aufgenommen</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="filterStatus = NoteStatus.TRANSCRIBING">
-            <v-list-item-title>Transkribiert...</v-list-item-title>
-          </v-list-item>
           <v-list-item @click="filterStatus = NoteStatus.TRANSCRIBED">
             <v-list-item-title>Transkribiert</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="filterStatus = NoteStatus.PROCESSING">
-            <v-list-item-title>Wird verarbeitet...</v-list-item-title>
-          </v-list-item>
           <v-list-item @click="filterStatus = NoteStatus.PROCESSED">
             <v-list-item-title>Verarbeitet</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="filterStatus = NoteStatus.SENDING">
-            <v-list-item-title>Wird gesendet...</v-list-item-title>
           </v-list-item>
           <v-list-item @click="filterStatus = NoteStatus.SENT">
             <v-list-item-title>Gesendet</v-list-item-title>
