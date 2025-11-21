@@ -245,6 +245,11 @@ const contactSelection = ref<string | null>(null)
 
 // Load note
 onMounted(async () => {
+  // Initialize companies store
+  if (authStore.githubToken) {
+    await companiesStore.initialize(authStore.githubToken)
+  }
+
   const noteId = route.params.id as string
   const loadedNote = await voiceNotesStore.getNoteById(noteId)
 
@@ -436,6 +441,24 @@ watch(editedTranscription, async (newTranscription) => {
   }
 })
 
+// Watch for company selection changes
+watch(companySelection, async (newCompany) => {
+  if (note.value && newCompany !== note.value.selectedCompanyId) {
+    await voiceNotesStore.updateNote(note.value.id, {
+      selectedCompanyId: newCompany || undefined
+    })
+  }
+})
+
+// Watch for contact selection changes
+watch(contactSelection, async (newContact) => {
+  if (note.value && newContact !== note.value.selectedContactId) {
+    await voiceNotesStore.updateNote(note.value.id, {
+      selectedContactId: newContact || undefined
+    })
+  }
+})
+
 // Send directly to GitHub with unprocessed transcript
 const sendDirectly = async () => {
   if (!note.value || !contactSelection.value) return
@@ -451,6 +474,12 @@ const sendDirectly = async () => {
   try {
     // Update transcription before sending
     await voiceNotesStore.setTranscription(note.value.id, editedTranscription.value)
+
+    // Update company and contact selection in the note
+    await voiceNotesStore.updateNote(note.value.id, {
+      selectedCompanyId: companySelection.value || undefined,
+      selectedContactId: contactSelection.value || undefined
+    })
 
     const companyName = getCompanyName()
     const contactName = getContactName()
@@ -512,9 +541,11 @@ const sendNote = async () => {
   isSending.value = true
 
   try {
-    // Update processed text before sending
+    // Update processed text and company/contact selection before sending
     await voiceNotesStore.updateNote(note.value.id, {
-      processedText: editedText.value
+      processedText: editedText.value,
+      selectedCompanyId: companySelection.value || undefined,
+      selectedContactId: contactSelection.value || undefined
     })
 
     const companyName = getCompanyName()

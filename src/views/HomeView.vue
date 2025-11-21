@@ -80,7 +80,7 @@
             </template>
 
             <v-list-item-title>
-              {{ getCompanyName(note.selectedCompanyId) || 'Unbekanntes Unternehmen' }}
+              {{ getNoteTitle(note) }}
             </v-list-item-title>
 
             <v-list-item-subtitle>
@@ -158,10 +158,50 @@ const recentNotes = computed(() => voiceNotesStore.notes.slice(0, 3))
 
 const pendingCount = computed(() => voiceNotesStore.pendingNotes.length)
 
-const getCompanyName = (companyId?: string) => {
+const getCompanyName = (companyId?: string): string | null => {
   if (!companyId) return null
+
+  // Check if it's an ID from the companies list
   const company = companiesStore.getCompanyById(companyId)
-  return company?.name || null
+  if (company) {
+    return company.shortName
+  }
+
+  // Otherwise it's a manually entered company name
+  return companyId
+}
+
+const getContactNameDirect = (contactId?: string): string | null => {
+  if (!contactId) return null
+  // Try to find contact across all companies
+  for (const company of companiesStore.companies) {
+    const contact = company.contacts.find(c => c.id === contactId)
+    if (contact) {
+      return companiesStore.formatContactName(contact)
+    }
+  }
+  return null
+}
+
+const getNoteTitle = (note: VoiceNote): string => {
+  // 1. Try company name (from list or manually entered)
+  const companyName = getCompanyName(note.selectedCompanyId)
+  if (companyName) return companyName
+
+  // 2. Try contact name as fallback
+  const contactName = note.selectedContactId
+    ? getContactNameDirect(note.selectedContactId)
+    : null
+  if (contactName) return contactName
+
+  // 3. Try first 30 characters of transcription
+  if (note.transcription && note.transcription.trim().length > 0) {
+    const preview = note.transcription.trim().substring(0, 30)
+    return preview.length < note.transcription.trim().length ? `${preview}...` : preview
+  }
+
+  // 4. Last resort
+  return 'Ohne Zuordnung'
 }
 
 const getStatusIcon = (status: NoteStatus) => {
