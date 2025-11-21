@@ -89,55 +89,29 @@ ERROR → [Retry] → TRANSCRIBING/PROCESSING/SENDING → ...
 
 ### Statusübergänge setzen
 
-**1. RECORDED → TRANSCRIBING → TRANSCRIBED**
-- Datei: `src/composables/useProcessing.ts:39-51`
-- Trigger: User startet Transkription
-- Code:
-  ```typescript
-  await voiceNotesStore.updateStatus(noteId, NoteStatus.TRANSCRIBING)
-  const transcription = await transcribeAudio(note.audioBlob, apiKey)
-  await voiceNotesStore.setTranscription(noteId, transcription) // → TRANSCRIBED
-  ```
+Alle Statusübergänge werden über den Voice Notes Store (`src/stores/voiceNotes.ts`) gesetzt. Die Verarbeitungslogik befindet sich in `src/composables/useProcessing.ts`.
 
-**2. TRANSCRIBED → PROCESSING → PROCESSED**
-- Datei: `src/composables/useProcessing.ts:123-148`
-- Trigger: User wählt Company/Contact und startet Aufbereitung
-- Code:
-  ```typescript
-  await voiceNotesStore.updateStatus(noteId, NoteStatus.PROCESSING)
-  const processed = await processText(...)
-  await voiceNotesStore.setProcessedText(noteId, processed) // → PROCESSED
-  ```
+**Beispiel eines typischen Status-Übergangs:**
 
-**3. PROCESSED → SENDING → SENT**
-- Datei: `src/composables/useProcessing.ts:203-233`
-- Trigger: User sendet Notiz an GitHub
-- Code:
-  ```typescript
-  await voiceNotesStore.updateStatus(noteId, NoteStatus.SENDING)
-  const issue = await createIssue(...)
-  await voiceNotesStore.setGitHubIssue(noteId, issue.html_url, issue.number) // → SENT
-  ```
+```typescript
+await voiceNotesStore.updateStatus(noteId, NoteStatus.TRANSCRIBING)
+const transcription = await transcribeAudio(note.audioBlob, apiKey)
+await voiceNotesStore.setTranscription(noteId, transcription) // → TRANSCRIBED
+```
 
-**4. Fehlerbehandlung**
-- Bei jedem API-Fehler:
-  ```typescript
-  await voiceNotesStore.updateStatus(noteId, NoteStatus.ERROR, errorMessage)
-  ```
+**Fehlerbehandlung:**
 
-### Automatische Statusübergänge
+Bei jedem API-Fehler wird der Status auf `ERROR` gesetzt:
 
-Die folgenden Funktionen setzen automatisch den nächsten stabilen Status:
-
-- `setTranscription()` → setzt `TRANSCRIBED` (src/stores/voiceNotes.ts:89-94)
-- `setProcessedText()` → setzt `PROCESSED` (src/stores/voiceNotes.ts:97-102)
-- `setGitHubIssue()` → setzt `SENT` (src/stores/voiceNotes.ts:117-127)
+```typescript
+await voiceNotesStore.updateStatus(noteId, NoteStatus.ERROR, errorMessage)
+```
 
 ## UI-Verhalten pro Status
 
 ### HistoryView Filter
 
-Der Filter in `src/views/HistoryView.vue:19-38` zeigt **nur stabile Stati**:
+Der Filter in `src/views/HistoryView.vue` zeigt **nur stabile Stati**:
 - Alle
 - Aufgenommen (RECORDED)
 - Transkribiert (TRANSCRIBED)
@@ -157,7 +131,7 @@ Die transienten Stati (`TRANSCRIBING`, `PROCESSING`, `SENDING`) werden bewusst *
 
 ### Status-Icons
 
-Icons werden in `src/views/HistoryView.vue:262-274` definiert:
+Icons werden in `src/views/HistoryView.vue` definiert:
 
 ```typescript
 const getStatusIcon = (status: NoteStatus): string => {
@@ -177,7 +151,7 @@ const getStatusIcon = (status: NoteStatus): string => {
 
 ### Status-Farben
 
-Farben werden in `src/utils/formatters.ts:49-61` definiert:
+Farben werden in `src/utils/formatters.ts` definiert:
 
 ```typescript
 const colors: Record<NoteStatus, string> = {
@@ -194,7 +168,7 @@ const colors: Record<NoteStatus, string> = {
 
 ### Bearbeitbarkeit
 
-In `src/views/HistoryView.vue:276-281` wird definiert, welche Notizen bearbeitet werden können:
+In `src/views/HistoryView.vue` wird definiert, welche Notizen bearbeitet werden können:
 
 ```typescript
 const canEdit = (status: NoteStatus): boolean => {
@@ -207,7 +181,7 @@ const canEdit = (status: NoteStatus): boolean => {
 
 ### Klickverhalten
 
-In `src/views/HistoryView.vue:294-316` wird das Klickverhalten definiert:
+In `src/views/HistoryView.vue` wird das Klickverhalten definiert:
 
 ```typescript
 const handleNoteClick = async (note) => {
@@ -259,11 +233,3 @@ Mögliche Erweiterungen des Statusmodells:
 - **ARCHIVED**: Alte, abgeschlossene Notizen
 - **DELETED**: Soft-Delete-Mechanismus statt hartem Löschen
 - **SYNCING**: Für Offline-Synchronisation (wenn offline erstellt und noch nicht hochgeladen)
-
-## Änderungshistorie
-
-### 2025-11-21: Entfernung transienter Stati aus Filter
-- **Problem**: Filter zeigte alle 8 Stati, inkl. transienter Stati
-- **Lösung**: Filter zeigt nur noch 5 stabile Stati
-- **Begründung**: Transiente Stati existieren nur Sekunden lang, Filter danach ist sinnlos
-- **Commit**: `refactor: remove transient loading states from history filter`
