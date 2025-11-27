@@ -67,6 +67,11 @@ export interface GitHubContentResponse {
   encoding: string
 }
 
+export interface ProcessedTextResponse {
+  conversationDate: string // Format: DD.MM.YYYY or empty string if not found
+  processedText: string
+}
+
 export interface APIError {
   message: string
   status?: number

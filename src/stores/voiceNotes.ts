@@ -101,6 +101,13 @@ export const useVoiceNotesStore = defineStore('voiceNotes', () => {
     })
   }
 
+  // Set conversation date
+  const setConversationDate = async (id: string, conversationDate: string) => {
+    await updateNote(id, {
+      conversationDate
+    })
+  }
+
   // Set company and contact
   const setCompanyAndContact = async (
     id: string,
@@ -185,6 +192,7 @@ export const useVoiceNotesStore = defineStore('voiceNotes', () => {
     updateStatus,
     setTranscription,
     setProcessedText,
+    setConversationDate,
     setCompanyAndContact,
     setGitHubIssue,
     deleteNote,

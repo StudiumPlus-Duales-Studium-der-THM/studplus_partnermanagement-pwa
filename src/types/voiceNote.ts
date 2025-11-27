@@ -18,6 +18,7 @@ export interface VoiceNote {
   selectedCompanyId?: string
   selectedContactId?: string
   recordedAt: Date
+  conversationDate?: string // Extracted date from transcript in format DD.MM.YYYY
   status: NoteStatus
   errorMessage?: string
   githubIssueUrl?: string
@@ -35,6 +36,7 @@ export interface VoiceNoteUpdateInput {
   processedText?: string
   selectedCompanyId?: string
   selectedContactId?: string
+  conversationDate?: string
   status?: NoteStatus
   errorMessage?: string
   githubIssueUrl?: string

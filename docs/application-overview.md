@@ -108,7 +108,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 | Service | Datei | Beschreibung |
 |---------|-------|--------------|
-| **OpenAI Service** | `src/services/openai.service.ts` | Whisper-Transkription, GPT-Textaufbereitung, Company-Matching |
+| **OpenAI Service** | `src/services/openai.service.ts` | Whisper-Transkription, GPT-Textaufbereitung (inkl. Gesprächsdatum-Extraktion), Company-Matching |
 | **GitHub Service** | `src/services/github.service.ts` | Issue-Erstellung, Abruf von `companies.json` |
 | **DB Service** | `src/services/db.ts` | IndexedDB-Zugriff (Dexie.js Schema) |
 | **Encryption Service** | `src/services/encryption.service.ts` | AES-Verschlüsselung für API-Keys |
@@ -196,22 +196,32 @@ Company/Contact werden vorausgewählt
 ```
 Status: TRANSCRIBED → PROCESSING
     ↓
-Transkription + Company + Contact → GPT-4o-mini
+Ein einzelner API-Call (processText) führt aus:
+   Transkription + Company + Contact + UserName → GPT-4o-mini
+
+   KI führt 2 Aufgaben parallel aus:
+   1. GESPRÄCHSDATUM-EXTRAKTION:
+      - Suche nach expliziten Datumsangaben im Text
+      - Format: TT.MM.JJJJ oder leer falls nicht erwähnt
+
+   2. TEXT-STRUKTURIERUNG:
+      - INHALTLICHE TREUE: Keine Änderung von Aussagen
+      - MINIMALE KORREKTUR: Nur Grammatik & Rechtschreibung
+      - DEADLINE-ERKENNUNG: Extraktion aller Termine/Fristen
+      - STRUKTURIERUNG: Gliederung in Abschnitte
+        • Unternehmen & Ansprechpartner
+        • Datum & Teilnehmer (mit extrahiertem Gesprächsdatum)
+        • Gesprächsnotizen (originalgetreu)
+        • Vereinbarungen
+        • Deadlines & Termine
+        • Nächste Schritte
     ↓
-KI strukturiert den Text nach klaren Regeln:
-  - INHALTLICHE TREUE: Keine Änderung von Aussagen
-  - MINIMALE KORREKTUR: Nur Grammatik & Rechtschreibung
-  - DEADLINE-ERKENNUNG: Extraktion aller Termine/Fristen
-  - STRUKTURIERUNG: Gliederung in Abschnitte
-    • Gesprächsnotizen (originalgetreu)
-    • Vereinbarungen
-    • Deadlines & Termine (explizit hervorgehoben)
-    • Nächste Schritte
-    ↓
-Response: Strukturierter Text (Originalaussagen erhalten)
+Response: JSON { conversationDate: "DD.MM.YYYY" | "", processedText: "..." }
     ↓
 Status: PROCESSED
 ```
+
+**Optimierung:** Datum-Extraktion und Text-Aufbereitung erfolgen in **einem** API-Call statt zwei separaten Calls.
 
 **GPT-Prompt-Regeln:**
 - Bewahrt inhaltliche Aussagen (keine Interpretationen)
@@ -243,15 +253,36 @@ Status: SENT
 
 **Issue-Format:**
 ```markdown
-## Metadaten
-- **Unternehmen:** ABC GmbH
-- **Ansprechpartner:** Max Mustermann (Geschäftsführer)
-- **Datum:** 21.11.2025
-- **Erfasst von:** John Doe
+## Unternehmen
+- Name: ABC GmbH
+- Ansprechpartner: Max Mustermann (Geschäftsführer)
 
-## Gesprächsnotiz
-[Aufbereiteter Text von GPT]
+## Datum & Teilnehmer
+- Gesprächsdatum: 21.11.2025 (oder "Nicht angegeben")
+- Direktor/in: John Doe
+
+## Gesprächsnotizen
+[Aufbereiteter Text von GPT - originalgetreu]
+
+## Vereinbarungen
+[Liste der Vereinbarungen]
+
+## Deadlines & Termine
+[Alle erwähnten Termine/Fristen]
+
+## Nächste Schritte
+[Liste der nächsten Schritte]
+
+## Metadaten
+- Erstellt: 2025-11-27T10:30:00Z
+- Studiengänge: Elektrotechnik, Maschinenbau
 ```
+
+**Hinweise:**
+- Gesamter Inhalt (außer Metadaten) wird von GPT generiert
+- Gesprächsdatum wird aus dem Transkript extrahiert (z.B. "am 15. März")
+- Falls kein Datum im Transkript: "Nicht angegeben"
+- Das Aufnahmedatum wird NICHT verwendet, da die Notiz später erstellt werden kann
 
 ## Token-Optimierung & Kostenmanagement
 
@@ -400,14 +431,16 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
     - Output: 0.01M × $0.600 = $0.006
     - **~$0.12/Monat**
 
-3. **GPT-4o-mini (Textaufbereitung):**
-    - 100 Anfragen × 1.000 tokens Input (Ø) = 100k tokens
-    - 100 Anfragen × 800 tokens Output (Ø) = 80k tokens
-    - Input: 0.1M × $0.150 = $0.015
-    - Output: 0.08M × $0.600 = $0.048
-    - **~$0.06/Monat**
+3. **GPT-4o-mini (Textaufbereitung inkl. Datum-Extraktion):**
+    - 100 Anfragen × 1.100 tokens Input (Ø) = 110k tokens
+    - 100 Anfragen × 850 tokens Output (Ø) = 85k tokens
+    - Input: 0.11M × $0.150 = $0.017
+    - Output: 0.085M × $0.600 = $0.051
+    - **~$0.07/Monat**
 
-**Total: ~$1.98/Monat oder ~$24/Jahr** ✅
+**Total: ~$1.99/Monat oder ~$24/Jahr** ✅
+
+**Optimierung:** Durch Kombination von Datum-Extraktion und Textaufbereitung in einem API-Call sparen wir einen API-Request pro Notiz, reduzieren Latenz und vereinfachen die Logik.
 
 *Hinweis: Preise Stand GPT-4o-mini. Aktuelle Preise prüfen unter: https://platform.openai.com/docs/pricing*
 
@@ -429,6 +462,7 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
     selectedCompanyId?: string
     selectedContactId?: string
     recordedAt: Date
+    conversationDate?: string  // Extrahiertes Gesprächsdatum aus Transkript (TT.MM.JJJJ)
     status: NoteStatus
     errorMessage?: string
     githubIssueUrl?: string

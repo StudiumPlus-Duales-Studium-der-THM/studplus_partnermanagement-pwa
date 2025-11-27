@@ -299,7 +299,7 @@ onUnmounted(() => {
 })
 
 // Save recording before leaving the route
-onBeforeRouteLeave(async (to, from, next) => {
+onBeforeRouteLeave(async (_to, _from, next) => {
   // If there's an audioBlob that hasn't been saved yet, save it automatically
   if (audioBlob.value && !isProcessing.value && !isSaved.value) {
     try {

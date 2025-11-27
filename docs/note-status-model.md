@@ -45,6 +45,8 @@ Diese Stati existieren nur für kurze Zeit (wenige Sekunden) während aktiver AP
 | **PROCESSING** | Wird verarbeitet... | ~5-15 Sekunden | → `PROCESSED` (Erfolg) oder `ERROR` (Fehler) |
 | **SENDING** | Wird gesendet... | ~2-5 Sekunden | → `SENT` (Erfolg) oder `ERROR` (Fehler) |
 
+*Hinweis: PROCESSING führt Textaufbereitung und Datum-Extraktion in einem kombinierten API-Call aus*
+
 ## Status-Übergänge
 
 ### Normaler Workflow (Happy Path)
@@ -57,7 +59,7 @@ TRANSCRIBING (transient)
 TRANSCRIBED
     ↓ [User wählt Company/Contact & startet Aufbereitung]
 PROCESSING (transient)
-    ↓ [OpenAI GPT API-Call erfolgreich]
+    ↓ [OpenAI GPT API-Call: Textaufbereitung inkl. Datum-Extraktion erfolgreich]
 PROCESSED
     ↓ [User sendet an GitHub]
 SENDING (transienter)

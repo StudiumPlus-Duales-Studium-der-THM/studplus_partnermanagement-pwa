@@ -3,7 +3,8 @@ import type {
   OpenAITranscriptionResponse,
   OpenAIChatRequest,
   OpenAIChatResponse,
-  CompanyMatchResult
+  CompanyMatchResult,
+  ProcessedTextResponse
 } from '@/types'
 
 const OPENAI_API_BASE = 'https://api.openai.com/v1'
@@ -109,22 +110,26 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
 
 /**
  * Processes and enhances the transcribed text
+ * Also extracts conversation date and includes metadata section
  */
 export const processText = async (
   transcription: string,
   companyName: string,
   contactName: string,
+  userName: string,
   apiKey: string
-): Promise<string> => {
+): Promise<ProcessedTextResponse> => {
   const prompt = `Du bist ein Assistent für StudiumPlus und hilfst, Gesprächsnotizen professionell aufzubereiten.
 
 Eingaben:
 - Unternehmen: ${companyName}
 - Ansprechpartner: ${contactName}
+- Direktor/in: ${userName}
 - Rohe Gesprächsnotiz: """${transcription}"""
 
 Aufgabe:
-Strukturiere die Gesprächsnotiz in folgende Abschnitte und analysiere Deadlines/Termine.
+1. GESPRÄCHSDATUM ERMITTELN: Suche nach dem Datum, an dem das Gespräch stattfand (NICHT Termine/Deadlines)
+2. NOTIZ STRUKTURIEREN: Bereite die Gesprächsnotiz professionell auf
 
 WICHTIGE REGELN:
 1. INHALTLICHE TREUE: Verändere KEINE inhaltlichen Aussagen. Bewahre die Originalaussagen.
@@ -142,18 +147,16 @@ Sprachliche Korrekturen (nur diese sind erlaubt):
 - Korrigiere Verb-Konjugationen
 - Vervollständige unvollständige Sätze minimal
 
-Antworte im Format:
-## Gesprächsnotizen
-[Hauptinhalt mit minimalsten Korrekturen, originalgetreu]
+Antworte AUSSCHLIESSLICH mit folgendem JSON-Format (kein zusätzlicher Text!):
+{
+  "conversationDate": "TT.MM.JJJJ oder leer falls nicht erwähnt",
+  "processedText": "## Unternehmen\\n- Name: ${companyName}\\n- Ansprechpartner: ${contactName}\\n\\n## Datum & Teilnehmer\\n- Gesprächsdatum: [Datum oder 'Nicht angegeben']\\n- Direktor/in: ${userName}\\n\\n## Gesprächsnotizen\\n[Hauptinhalt]\\n\\n## Vereinbarungen\\n[Vereinbarungen]\\n\\n## Deadlines & Termine\\n[Termine]\\n\\n## Nächste Schritte\\n[Schritte]"
+}
 
-## Vereinbarungen
-[Liste der Vereinbarungen, oder "Keine expliziten Vereinbarungen getroffen."]
-
-## Deadlines & Termine
-[Alle erwähnten Termine/Fristen mit Datum im Format TT.MM.JJJJ, oder "Keine Termine genannt."]
-
-## Nächste Schritte
-[Liste der nächsten Schritte, oder "Keine konkreten nächsten Schritte festgelegt."]`
+WICHTIG für conversationDate:
+- Suche nach "am [Datum]", "das Gespräch fand am", "wir trafen uns am" etc.
+- NICHT Termine/Deadlines (die kommen in den Text)
+- Wenn nicht erwähnt: leerer String ""`
 
   const request: OpenAIChatRequest = {
     model: 'gpt-4o-mini',
@@ -163,8 +166,8 @@ Antworte im Format:
         content: prompt
       }
     ],
-    temperature: 0.5,
-    max_tokens: 1500
+    temperature: 0.3,
+    max_tokens: 1600
   }
 
   const response = await axios.post<OpenAIChatResponse>(
@@ -178,5 +181,10 @@ Antworte im Format:
     }
   )
 
-  return response.data.choices[0].message.content
+  const content = response.data.choices[0].message.content.trim()
+
+  // Parse JSON response
+  const parsed = JSON.parse(content) as ProcessedTextResponse
+
+  return parsed
 }

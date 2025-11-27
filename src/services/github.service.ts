@@ -140,27 +140,15 @@ export const checkTokenPermissions = async (
 
 /**
  * Formats issue body for a meeting note
+ * Note: processedText already contains company, date, and participant information
  */
 export const formatIssueBody = (params: {
-  companyName: string
-  contactName: string
-  contactRole?: string
-  date: string
-  userName: string
   processedText: string
   studyPrograms: string[]
 }): string => {
   const timestamp = new Date().toISOString()
 
-  return `## Unternehmen
-- Name: ${params.companyName}
-- Ansprechpartner: ${params.contactName}${params.contactRole ? ` (${params.contactRole})` : ''}
-
-## Datum & Teilnehmer
-- Gesprächsdatum: ${params.date}
-- Direktor/in: ${params.userName}
-
-${params.processedText}
+  return `${params.processedText}
 
 ## Metadaten
 - Erstellt: ${timestamp}

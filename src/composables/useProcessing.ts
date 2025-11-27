@@ -132,14 +132,22 @@ export function useProcessing() {
         ? companiesStore.formatContactWithRole(contact)
         : 'Nicht angegeben'
 
-      const processed = await processText(
+      // Process text and extract conversation date in one API call
+      const result = await processText(
         note.transcription,
         company.name,
         contactName,
+        authStore.userName || 'Unbekannt',
         apiKey
       )
 
-      await voiceNotesStore.setProcessedText(noteId, processed)
+      // Save conversation date if found
+      if (result.conversationDate) {
+        await voiceNotesStore.setConversationDate(noteId, result.conversationDate)
+      }
+
+      // Save processed text
+      await voiceNotesStore.setProcessedText(noteId, result.processedText)
       return true
     } catch (err) {
       console.error('Text processing failed:', err)
@@ -203,25 +211,15 @@ export function useProcessing() {
       processingStep.value = 'Erstelle GitHub Issue...'
       await voiceNotesStore.updateStatus(noteId, NoteStatus.SENDING)
 
-      const contact = note.selectedContactId
-        ? companiesStore.getContactById(note.selectedCompanyId, note.selectedContactId)
-        : undefined
-
-      const formattedDate = format(note.recordedAt, 'dd.MM.yyyy', { locale: de })
-
+      // Format issue body (processedText already contains company, date, and participant info)
       const issueBody = formatIssueBody({
-        companyName: company.name,
-        contactName: contact
-          ? companiesStore.formatContactName(contact)
-          : 'Nicht angegeben',
-        contactRole: contact?.role,
-        date: formattedDate,
-        userName: authStore.userName || 'Unbekannt',
         processedText: note.processedText,
         studyPrograms: company.studyPrograms
       })
 
-      const title = `[${company.shortName || company.name}] - ${formattedDate} - ${authStore.userName}`
+      // For title, use conversation date if available, otherwise recorded date
+      const titleDate = note.conversationDate || format(note.recordedAt, 'dd.MM.yyyy', { locale: de })
+      const title = `[${company.shortName || company.name}] - ${titleDate} - ${authStore.userName}`
 
       const issue = await createIssue(
         githubToken,

@@ -405,14 +405,21 @@ const processText = async () => {
       await voiceNotesStore.updateStatus(note.value.id, NoteStatus.PROCESSING)
 
       const { processText: processTextAPI } = await import('@/services/openai.service')
-      const processed = await processTextAPI(
+      const result = await processTextAPI(
         editedTranscription.value || '',
         companyName,
         contactName,
+        authStore.userName || 'Unbekannt',
         apiKey
       )
 
-      await voiceNotesStore.setProcessedText(note.value.id, processed)
+      // Save conversation date if found
+      if (result.conversationDate) {
+        await voiceNotesStore.setConversationDate(note.value.id, result.conversationDate)
+      }
+
+      // Save processed text
+      await voiceNotesStore.setProcessedText(note.value.id, result.processedText)
 
       const updated = await voiceNotesStore.getNoteById(note.value.id)
       if (updated) {
@@ -459,6 +466,29 @@ watch(contactSelection, async (newContact) => {
   }
 })
 
+// Helper function to create structured text manually (when not processed by GPT)
+const createStructuredText = (text: string, companyName: string, contactName: string, contactRole: string | undefined, date: string) => {
+  return `## Unternehmen
+- Name: ${companyName}
+- Ansprechpartner: ${contactName}${contactRole ? ` (${contactRole})` : ''}
+
+## Datum & Teilnehmer
+- Gesprächsdatum: ${date}
+- Direktor/in: ${authStore.userName || 'Unbekannt'}
+
+## Gesprächsnotizen
+${text}
+
+## Vereinbarungen
+Keine expliziten Vereinbarungen getroffen.
+
+## Deadlines & Termine
+Keine Termine genannt.
+
+## Nächste Schritte
+Keine konkreten nächsten Schritte festgelegt.`
+}
+
 // Send directly to GitHub with unprocessed transcript
 const sendDirectly = async () => {
   if (!note.value || !contactSelection.value) return
@@ -491,14 +521,18 @@ const sendDirectly = async () => {
     const company = companiesStore.getCompanyById(companySelection.value || '')
     const studyPrograms = company?.studyPrograms || []
 
-    // Use transcription text instead of processed text
-    const issueBody = formatIssueBody({
+    // Create structured text manually
+    const structuredText = createStructuredText(
+      editedTranscription.value,
       companyName,
       contactName,
       contactRole,
-      date: formattedDate,
-      userName: authStore.userName || 'Unbekannt',
-      processedText: editedTranscription.value,
+      formattedDate
+    )
+
+    // Use new formatIssueBody format
+    const issueBody = formatIssueBody({
+      processedText: structuredText,
       studyPrograms
     })
 
@@ -548,29 +582,20 @@ const sendNote = async () => {
       selectedContactId: contactSelection.value || undefined
     })
 
-    const companyName = getCompanyName()
-    const contactName = getContactName()
-    const contactRole = getContactRole()
-
-    const formattedDate = format(note.value.recordedAt, 'dd.MM.yyyy', { locale: de })
-
-    // Get study programs if company is from list
     const company = companiesStore.getCompanyById(companySelection.value || '')
     const studyPrograms = company?.studyPrograms || []
 
+    // Use processed text (already contains all sections from GPT)
     const issueBody = formatIssueBody({
-      companyName,
-      contactName,
-      contactRole,
-      date: formattedDate,
-      userName: authStore.userName || 'Unbekannt',
       processedText: editedText.value,
       studyPrograms
     })
 
-    // Create title with company short name or full name
+    // For title, use conversation date if available, otherwise recorded date
+    const titleDate = note.value.conversationDate || format(note.value.recordedAt, 'dd.MM.yyyy', { locale: de })
+    const companyName = getCompanyName()
     const shortName = company?.shortName || companyName
-    const title = `[${shortName}] - ${formattedDate} - ${authStore.userName}`
+    const title = `[${shortName}] - ${titleDate} - ${authStore.userName}`
 
     // Create labels
     const labels = ['partner-kontakt']
