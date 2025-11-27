@@ -266,11 +266,11 @@ Status: SENT
 1000 Unternehmen: ~200.000-500.000 tokens pro Anfrage ❌ (überschreitet Context Window!)
 ```
 
-**Kosten-Beispiel (GPT-5-mini) bei naiver Implementierung:**
-- Input: $0.25 per 1M tokens
-- Output: $2.00 per 1M tokens
-- Bei 100 Anfragen/Tag mit 50.000 tokens Input: 0.05M × $0.25 × 100 Tage = ~$1.25/Tag
-- = ~$450/Jahr nur für Company-Matching (ohne Output!) ❌
+**Kosten-Beispiel (GPT-4o-mini) bei naiver Implementierung:**
+- Input: $0.150 per 1M tokens
+- Output: $0.600 per 1M tokens
+- Bei 100 Anfragen/Tag mit 50.000 tokens Input: 0.05M × $0.150 × 100 Tage = ~$0.75/Tag
+- = ~$270/Jahr nur für Company-Matching (ohne Output!) ❌
 
 ### Implementierte Lösung: Feld-Filterung (Option 1)
 
@@ -390,26 +390,26 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 
 *Berechnungen:*
 1. **Whisper (Transkription):**
-   - 100 Notizen × 3 Min Ø = 300 Min/Monat
-   - 300 Min × $0.006 = **~$1.80/Monat**
+    - 100 Notizen × 3 Min Ø = 300 Min/Monat
+    - 300 Min × $0.006 = **~$1.80/Monat**
 
-2. **GPT-5-mini (Company Matching):**
-   - 100 Anfragen × 7.500 tokens Input (Ø) = 750k tokens
-   - 100 Anfragen × 100 tokens Output (Ø) = 10k tokens
-   - Input: 0.75M × $0.25 = $0.19
-   - Output: 0.01M × $2.00 = $0.02
-   - **~$0.21/Monat**
+2. **GPT-4o-mini (Company Matching):**
+    - 100 Anfragen × 7.500 tokens Input (Ø) = 750k tokens
+    - 100 Anfragen × 100 tokens Output (Ø) = 10k tokens
+    - Input: 0.75M × $0.150 = $0.11
+    - Output: 0.01M × $0.600 = $0.006
+    - **~$0.12/Monat**
 
-3. **GPT-5-mini (Textaufbereitung):**
-   - 100 Anfragen × 1.000 tokens Input (Ø) = 100k tokens
-   - 100 Anfragen × 800 tokens Output (Ø) = 80k tokens
-   - Input: 0.1M × $0.25 = $0.025
-   - Output: 0.08M × $2.00 = $0.16
-   - **~$0.19/Monat**
+3. **GPT-4o-mini (Textaufbereitung):**
+    - 100 Anfragen × 1.000 tokens Input (Ø) = 100k tokens
+    - 100 Anfragen × 800 tokens Output (Ø) = 80k tokens
+    - Input: 0.1M × $0.150 = $0.015
+    - Output: 0.08M × $0.600 = $0.048
+    - **~$0.06/Monat**
 
-**Total: ~$2.20/Monat oder ~$26/Jahr** ✅
+**Total: ~$1.98/Monat oder ~$24/Jahr** ✅
 
-*Hinweis: Preise Stand GPT-5-mini Release. Aktuelle Preise prüfen unter: https://platform.openai.com/docs/pricing*
+*Hinweis: Preise Stand GPT-4o-mini. Aktuelle Preise prüfen unter: https://platform.openai.com/docs/pricing*
 
 ---
 
