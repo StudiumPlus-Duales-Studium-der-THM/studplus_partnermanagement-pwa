@@ -1,9 +1,5 @@
 # StudiumPlus Partner-Notizen - Applikationsübersicht
 
-> **⚠️ WICHTIG - Kostenmanagement:**
-> Diese Dokumentation enthält eine wichtige Sektion zur **Token-Optimierung & Kostenmanagement** (siehe unten).
-> Die implementierte Feld-Filterung beim Company-Matching reduziert API-Kosten um ~80% und ist essentiell für den wirtschaftlichen Betrieb.
-
 ## Zweck der Anwendung
 
 Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), die StudiumPlus-Direktoren bei der Dokumentation von Partnergesprächen unterstützt. Die App automatisiert den Workflow von der Sprachaufnahme bis zum fertigen GitHub Issue durch den Einsatz von KI-Technologien.
@@ -35,7 +31,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 ### APIs & Services
 - **OpenAI Whisper API** - Sprachtranskription (Audio → Text)
-- **OpenAI GPT-5-mini** - Textaufbereitung und Company-Matching
+- **OpenAI GPT-4o-mini** - Textaufbereitung und Company-Matching
 - **GitHub API** - Issue-Erstellung und Datenabfrage
 
 ### Sicherheit
@@ -80,7 +76,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
         ├─────────────────────────────────────┤
         │  OpenAI API    │  GitHub API        │
         │  - Whisper     │  - Issues          │
-        │  - GPT-5-mini  │  - Contents        │
+        │  - GPT-4o-mini │  - Contents        │
         └─────────────────────────────────────┘
 ```
 
@@ -173,7 +169,7 @@ Status: TRANSCRIBED
 **Trigger:** Automatisch nach Transkription
 
 ```
-Transkription + companies.json werden an GPT-5-mini gesendet
+Transkription + companies.json werden an GPT-4o-mini gesendet
     ↓
 Nur matching-relevante Felder werden extrahiert:
   • id, name, shortName, aliases, location
@@ -200,7 +196,7 @@ Company/Contact werden vorausgewählt
 ```
 Status: TRANSCRIBED → PROCESSING
     ↓
-Transkription + Company + Contact → GPT-5-mini
+Transkription + Company + Contact → GPT-4o-mini
     ↓
 KI strukturiert den Text nach klaren Regeln:
   - INHALTLICHE TREUE: Keine Änderung von Aussagen
@@ -386,11 +382,11 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 
 **Geschätzte Gesamtkosten (bei 100 Notizen/Monat):**
 
-*Pricing-Annahmen (Stand: OpenAI GPT-5-mini Preise):*
+*Pricing-Annahmen (Stand: OpenAI GPT-4o-mini Preise):*
 - Whisper: $0.006 per Minute Audio
-- GPT-5-mini Input: $0.25 per 1M tokens
-- GPT-5-mini Cached Input: $0.25 per 1M tokens
-- GPT-5-mini Output: $2.00 per 1M tokens
+- GPT-4o-mini Input: $0.150 per 1M tokens
+- GPT-4o-mini Cached Input: $0.075 per 1M tokens
+- GPT-4o-mini Output: $0.600 per 1M tokens
 
 *Berechnungen:*
 1. **Whisper (Transkription):**
@@ -413,7 +409,7 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 
 **Total: ~$2.20/Monat oder ~$26/Jahr** ✅
 
-*Hinweis: Preise Stand GPT-5-mini Release. Aktuelle Preise prüfen unter: https://openai.com/pricing*
+*Hinweis: Preise Stand GPT-5-mini Release. Aktuelle Preise prüfen unter: https://platform.openai.com/docs/pricing*
 
 ---
 
@@ -458,7 +454,7 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 - Authentifizierung: `Bearer <API-Key>`
 - Verwendete Modelle:
   - `whisper-1` - Transkription
-  - `gpt-5-mini` - Textaufbereitung und Matching
+  - `gpt-4o-mini` - Textaufbereitung und Matching
 
 **GitHub API:**
 - Endpoint: `https://api.github.com`

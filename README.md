@@ -6,7 +6,7 @@ Eine Progressive Web App (PWA) für StudiumPlus-Direktoren zur Aufnahme und Vera
 
 - **Sprachaufnahme**: Aufnehmen von Gesprächsnotizen mit dem Mikrofon
 - **KI-Transkription**: Automatische Transkription via OpenAI Whisper
-- **Textaufbereitung**: Professionelle Aufbereitung via GPT-5-mini
+- **Textaufbereitung**: Professionelle Aufbereitung via GPT-4o-mini
 - **GitHub Integration**: Automatische Erstellung von Issues im Repository
 - **Offline-Fähig**: PWA mit Service Worker für Offline-Nutzung
 - **Sicher**: WebAuthn-Authentifizierung und verschlüsselte Datenspeicherung

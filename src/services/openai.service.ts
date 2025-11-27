@@ -81,7 +81,7 @@ WICHTIG: Suche nach Namen, Alias, Standort oder Hinweisen im Text. Antworte NUR 
 Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
 
   const request: OpenAIChatRequest = {
-    model: 'gpt-5-mini',
+    model: 'gpt-4o-mini',
     messages: [
       {
         role: 'user',
@@ -156,7 +156,7 @@ Antworte im Format:
 [Liste der nächsten Schritte, oder "Keine konkreten nächsten Schritte festgelegt."]`
 
   const request: OpenAIChatRequest = {
-    model: 'gpt-5-mini',
+    model: 'gpt-4o-mini',
     messages: [
       {
         role: 'user',

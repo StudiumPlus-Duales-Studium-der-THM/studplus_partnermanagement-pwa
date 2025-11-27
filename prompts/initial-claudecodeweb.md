@@ -22,7 +22,7 @@ Entwickle eine Progressive Web App (PWA) mit Vue.js, mit der Direktoren von Stud
 
 ### APIs & Services
 - **Speech-to-Text:** OpenAI Whisper API
-- **Text-Aufbereitung:** OpenAI GPT-5-mini API (aktuelles Modell, später Umstellung auf nele.ai vorbereiten)
+- **Text-Aufbereitung:** OpenAI GPT-4o-mini API (aktuelles Modell, später Umstellung auf nele.ai vorbereiten)
 - **Ticketing:** GitHub REST API v3
 - **Repository:** `https://github.com/StudiumPlus-Duales-Studium-der-THM/studiumplus-partner-management.git` (private)
 
@@ -271,7 +271,7 @@ const stopRecording = () => {
 - Transkription in VoiceNote speichern (status: transcribed)
 
 **Schritt 2: Unternehmens-Matching**
-- Transkription + Liste der companies.json an GPT-5-mini senden
+- Transkription + Liste der companies.json an GPT-4o-mini senden
 - **Token-Optimierung:** Nur matching-relevante Felder werden extrahiert (id, name, shortName, aliases, location)
 - Keine Kontakt-Daten werden gesendet (nicht relevant für Firmen-Matching)
 - Prompt:
@@ -300,7 +300,7 @@ const stopRecording = () => {
 - Response parsen, Unternehmen vorschlagen
 
 **Schritt 3: Text-Aufbereitung**
-- Transkription + ausgewähltes Unternehmen + Ansprechpartner an GPT-5-mini
+- Transkription + ausgewähltes Unternehmen + Ansprechpartner an GPT-4o-mini
 - Prompt:
   ```
   Du bist ein Assistent für StudiumPlus und hilfst, Gesprächsnotizen professionell aufzubereiten.
@@ -638,7 +638,7 @@ const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 - Base URL: `https://api.openai.com/v1`
 - Modelle:
   - Whisper: `whisper-1`
-  - GPT: `gpt-5-mini`
+  - GPT: `gpt-4o-mini`
 
 **GitHub API:**
 - Base URL: `https://api.github.com`
