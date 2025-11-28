@@ -149,9 +149,7 @@ const { processNote } = useProcessing()
 
 onMounted(async () => {
   await voiceNotesStore.loadNotes()
-  if (authStore.githubToken) {
-    await companiesStore.initialize(authStore.githubToken)
-  }
+  await companiesStore.initialize()
 })
 
 const recentNotes = computed(() => voiceNotesStore.notes.slice(0, 3))

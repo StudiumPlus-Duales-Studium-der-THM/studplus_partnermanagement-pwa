@@ -3,7 +3,6 @@ export interface UserCredentials {
   userName: string
   passwordHash: string
   salt: string
-  githubToken: string
   createdAt: Date
   updatedAt: Date
 }
@@ -19,7 +18,6 @@ export interface AuthState {
 export interface SetupData {
   userName: string
   password: string
-  githubToken: string
 }
 
 export interface AuthSession {

@@ -246,9 +246,7 @@ const contactSelection = ref<string | null>(null)
 // Load note
 onMounted(async () => {
   // Initialize companies store
-  if (authStore.githubToken) {
-    await companiesStore.initialize(authStore.githubToken)
-  }
+  await companiesStore.initialize()
 
   const noteId = route.params.id as string
   const loadedNote = await voiceNotesStore.getNoteById(noteId)

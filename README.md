@@ -9,7 +9,7 @@ Eine Progressive Web App (PWA) für StudiumPlus-Direktoren zur Aufnahme und Vera
 - **Textaufbereitung**: Professionelle Aufbereitung via GPT-4o-mini
 - **GitHub Integration**: Automatische Erstellung von Issues im Repository
 - **Offline-Fähig**: PWA mit Service Worker für Offline-Nutzung
-- **Sicher**: WebAuthn-Authentifizierung und verschlüsselte Datenspeicherung
+- **Sicher**: Passwort-geschützte Authentifizierung mit verschlüsselter Datenspeicherung
 
 ## Technologie-Stack
 
@@ -32,17 +32,34 @@ Eine Progressive Web App (PWA) für StudiumPlus-Direktoren zur Aufnahme und Vera
 ```bash
 npm install
 cp .env.example .env.local
-# .env.local mit API Keys füllen
+# .env.local mit API Keys und GitHub Token konfigurieren
 npm run dev
 ```
 
 ### Environment Variables
 
+Erstellen Sie eine `.env.local` Datei mit folgenden Konfigurationen:
+
 ```bash
+# OpenAI API Key
 VITE_OPENAI_API_KEY=sk-...
+
+# GitHub Token (Fine-grained PAT mit Issues: Read/Write, Contents: Read)
+VITE_GITHUB_TOKEN=ghp_...
+
+# GitHub Repository Configuration
 VITE_GITHUB_REPO_OWNER=StudiumPlus-Duales-Studium-der-THM
 VITE_GITHUB_REPO_NAME=studiumplus-partner-management
 ```
+
+### GitHub Token erstellen
+
+1. GitHub Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens
+2. Neuen Token erstellen
+3. Berechtigungen setzen:
+   - **Issues**: Read and Write
+   - **Contents**: Read only
+4. Token in `.env.local` als `VITE_GITHUB_TOKEN` eintragen
 
 ### Build
 
@@ -50,12 +67,6 @@ VITE_GITHUB_REPO_NAME=studiumplus-partner-management
 npm run build
 npm run preview
 ```
-
-## GitHub Token
-
-1. GitHub Settings -> Developer settings -> Personal access tokens
-2. Fine-grained PAT erstellen
-3. Berechtigungen: Issues (Read/Write), Contents (Read)
 
 ## PWA Installation
 
