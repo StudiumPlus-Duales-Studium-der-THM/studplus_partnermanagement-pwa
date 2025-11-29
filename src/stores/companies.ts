@@ -27,12 +27,12 @@ export const useCompaniesStore = defineStore('companies', () => {
   }
 
   // Fetch companies from GitHub and update cache
-  const fetchFromGitHub = async (githubToken: string): Promise<boolean> => {
+  const fetchFromGitHub = async (): Promise<boolean> => {
     isLoading.value = true
     lastError.value = null
 
     try {
-      const data = await fetchCompanies(githubToken)
+      const data = await fetchCompanies()
       companies.value = data.companies
 
       // Save to IndexedDB
@@ -53,13 +53,13 @@ export const useCompaniesStore = defineStore('companies', () => {
   }
 
   // Initialize: load from cache, then try to update from GitHub
-  const initialize = async (githubToken: string) => {
+  const initialize = async () => {
     // First load from cache
     await loadFromCache()
 
     // Then try to update from GitHub if online
     if (navigator.onLine) {
-      await fetchFromGitHub(githubToken)
+      await fetchFromGitHub()
     }
   }
 

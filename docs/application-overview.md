@@ -86,8 +86,8 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 | View | Route | Beschreibung |
 |------|-------|--------------|
-| **OnboardingView** | `/onboarding` | Erstmaliges Setup: Name, API-Keys, GitHub Token |
-| **AuthView** | `/auth` | WebAuthn Login-Bildschirm |
+| **OnboardingView** | `/onboarding` | Erstmaliges Setup: Name und Passwort |
+| **AuthView** | `/auth` | Passwort Login-Bildschirm |
 | **HomeView** | `/` | Dashboard mit letzten Notizen |
 | **RecordingView** | `/recording` | Sprachaufnahme-Interface |
 | **PreviewView** | `/preview/:id` | Bearbeitung von Transkription und aufbereitetem Text |
@@ -98,7 +98,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 | Store | Verantwortlichkeit |
 |-------|-------------------|
-| **authStore** | Authentifizierung, API-Keys, User-Daten |
+| **authStore** | Authentifizierung, User-Daten, Zugriff auf env-konfigurierte API-Keys |
 | **voiceNotesStore** | CRUD-Operationen für Sprachnotizen |
 | **companiesStore** | Verwaltung der Partnerunternehmen-Daten |
 | **settingsStore** | App-Einstellungen (Auto-Lock, Theme) |
@@ -471,12 +471,12 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 }
 ```
 
-**LocalStorage (verschlüsselt):**
+**LocalStorage:**
 ```json
 {
-  "auth_data": "<AES-verschlüsseltes JSON>",
   "settings": {
-    "autoLockMinutes": 15
+    "autoLockMinutes": 15,
+    "darkMode": false
   }
 }
 ```
@@ -501,27 +501,28 @@ console.log(`Sent ${compactJson.length} characters (~${compactJson.length/4} tok
 
 ### Authentifizierung
 
-**WebAuthn (biometrisch):**
-- Fingerabdruck (iOS, Android, Windows Hello)
-- FaceID (iOS, macOS)
-- PIN als Fallback
-- Challenge-Response-Mechanismus
-- Credentials werden im Browser gespeichert (nicht übertragbar)
+**Passwort-basierte Authentifizierung:**
+- Benutzer legt bei der Einrichtung ein Passwort fest (min. 8 Zeichen)
+- Passwort wird mit Salt gehasht (PBKDF2) und in IndexedDB gespeichert
+- Session-basierte Authentifizierung mit Token
+- Passwort kann jederzeit in den Einstellungen geändert werden
+- Automatische Session-Wiederherstellung bei Browser-Reload
 
 **Implementierung:** `src/stores/auth.ts`
 
-### Datenverschlüsselung
+### API-Konfiguration
 
-**API-Keys (AES-256):**
-```typescript
-// Verschlüsselung
-const encrypted = CryptoJS.AES.encrypt(apiKey, passphrase).toString()
+**Environment Variables:**
+- API-Keys (OpenAI, GitHub Token) werden in `.env.local` Datei konfiguriert
+- Werden beim Build in die Applikation kompiliert
+- Nicht mehr im Onboarding-Prozess oder in den Einstellungen eingegeben
+- Zugriff im Code über `import.meta.env.VITE_*`
 
-// Entschlüsselung
-const decrypted = CryptoJS.AES.decrypt(encrypted, passphrase).toString(CryptoJS.enc.Utf8)
-```
-
-**Passphrase-Generierung:** Aus WebAuthn-Challenge abgeleitet
+**Vorteile:**
+- Keine Speicherung sensibler Tokens in der Datenbank
+- Zentrale Konfiguration über `.env` Datei
+- Einfachere Verwaltung und Rotation von Tokens
+- Token-Änderung erfordert nur Build-Neustart
 
 ### Auto-Lock
 
@@ -657,8 +658,11 @@ Bei Fehler: Status bleibt PROCESSED (erneuter Versuch beim nächsten Online-Even
 # Dependencies installieren
 npm install
 
-# .env.local erstellen
+# .env.local erstellen und konfigurieren
 cp .env.example .env.local
+# Editiere .env.local und füge deine API-Keys ein:
+# - VITE_OPENAI_API_KEY
+# - VITE_GITHUB_TOKEN
 
 # Dev-Server starten
 npm run dev
@@ -669,6 +673,8 @@ npm run build
 # Tests ausführen
 npm run test
 ```
+
+**Wichtig:** Die `.env.local` Datei muss vor dem ersten Start konfiguriert werden, da die App die API-Keys aus dieser Datei liest.
 
 ### Wichtige Konventionen
 

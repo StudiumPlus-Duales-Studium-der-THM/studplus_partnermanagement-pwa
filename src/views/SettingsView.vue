@@ -95,51 +95,6 @@
           </v-card-text>
         </v-card>
 
-        <!-- API Tokens -->
-        <v-card class="mb-4">
-          <v-card-title>
-            <v-icon start>mdi-key</v-icon>
-            API-Konfiguration
-          </v-card-title>
-          <v-card-text>
-            <!-- GitHub Token -->
-            <v-expansion-panels class="mb-4">
-              <v-expansion-panel>
-                <v-expansion-panel-title>
-                  GitHub Token
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <v-text-field
-                    v-model="githubToken"
-                    label="Personal Access Token"
-                    :type="showGithubToken ? 'text' : 'password'"
-                    :append-inner-icon="showGithubToken ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showGithubToken = !showGithubToken"
-                    variant="outlined"
-                  ></v-text-field>
-                  <div class="d-flex gap-2">
-                    <v-btn
-                      color="secondary"
-                      variant="outlined"
-                      :loading="isValidatingToken"
-                      @click="validateToken"
-                    >
-                      Token validieren
-                    </v-btn>
-                    <v-btn
-                      color="primary"
-                      :loading="isSavingToken"
-                      @click="saveGithubToken"
-                    >
-                      Speichern
-                    </v-btn>
-                  </div>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </v-card-text>
-        </v-card>
-
         <!-- Data -->
         <v-card class="mb-4">
           <v-card-title>
@@ -242,7 +197,6 @@ import { useSettingsStore } from '@/stores/settings'
 import { useCompaniesStore } from '@/stores/companies'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
 import { useNotificationStore } from '@/stores/notification'
-import { validateToken as validateGitHubToken } from '@/services/github.service'
 import { clearAllData as clearDB } from '@/services/db'
 import { formatDate } from '@/utils/formatters'
 import { AUTO_LOCK_OPTIONS, APP_VERSION } from '@/utils/constants'
@@ -263,12 +217,6 @@ const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const isChangingPassword = ref(false)
-
-// Tokens
-const githubToken = ref('')
-const showGithubToken = ref(false)
-const isValidatingToken = ref(false)
-const isSavingToken = ref(false)
 
 // Data
 const isUpdatingCompanies = ref(false)
@@ -311,50 +259,11 @@ const changePassword = async () => {
   }
 }
 
-// Tokens
-const validateToken = async () => {
-  if (!githubToken.value) return
-
-  isValidatingToken.value = true
-  try {
-    const result = await validateGitHubToken(githubToken.value)
-    if (result.valid) {
-      notificationStore.success(`Token gültig. ${result.remaining} API-Aufrufe verbleibend.`)
-    } else {
-      notificationStore.error('Token ungültig')
-    }
-  } catch {
-    notificationStore.error('Validierung fehlgeschlagen')
-  } finally {
-    isValidatingToken.value = false
-  }
-}
-
-const saveGithubToken = async () => {
-  isSavingToken.value = true
-  try {
-    const success = await authStore.updateGithubToken(githubToken.value)
-    if (success) {
-      notificationStore.success('Token gespeichert')
-      githubToken.value = ''
-    } else {
-      notificationStore.error('Fehler beim Speichern')
-    }
-  } finally {
-    isSavingToken.value = false
-  }
-}
-
 // Data
 const updateCompanies = async () => {
-  if (!authStore.githubToken) {
-    notificationStore.error('GitHub Token nicht konfiguriert')
-    return
-  }
-
   isUpdatingCompanies.value = true
   try {
-    const success = await companiesStore.fetchFromGitHub(authStore.githubToken)
+    const success = await companiesStore.fetchFromGitHub()
     if (success) {
       notificationStore.success(`${companiesStore.companyCount} Unternehmen geladen`)
     } else {

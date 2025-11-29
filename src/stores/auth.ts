@@ -6,8 +6,6 @@ import {
   hashPassword,
   generateSalt,
   verifyPassword,
-  encryptForStorage,
-  decryptFromStorage,
   generateSessionToken
 } from '@/services/encryption.service'
 import type { SetupData, UserCredentials, AuthSession } from '@/types'
@@ -20,11 +18,8 @@ export const useAuthStore = defineStore('auth', () => {
   const lastActivity = ref(Date.now())
   const currentPassword = ref<string | null>(null)
 
-  // Encrypted data in memory
-  const decryptedGithubToken = ref<string | null>(null)
-
-  const githubToken = computed(() => decryptedGithubToken.value)
-  // OpenAI API key comes from environment variable only
+  // API keys from environment variables
+  const githubToken = computed(() => import.meta.env.VITE_GITHUB_TOKEN || '')
   const openaiApiKey = computed(() => import.meta.env.VITE_OPENAI_API_KEY || '')
 
   // Check if initial setup is complete
@@ -37,15 +32,11 @@ export const useAuthStore = defineStore('auth', () => {
     const salt = generateSalt()
     const passwordHash = hashPassword(data.password, salt)
 
-    // Encrypt sensitive data
-    const encryptedGithubToken = encryptForStorage(data.githubToken, data.password, salt)
-
     const credentials: UserCredentials = {
       id: nanoid(),
       userName: data.userName,
       passwordHash,
       salt,
-      githubToken: encryptedGithubToken,
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -63,17 +54,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isValid = verifyPassword(password, credentials.salt, credentials.passwordHash)
     if (!isValid) {
-      return false
-    }
-
-    // Decrypt sensitive data
-    try {
-      decryptedGithubToken.value = decryptFromStorage(
-        credentials.githubToken,
-        password,
-        credentials.salt
-      )
-    } catch {
       return false
     }
 
@@ -98,7 +78,6 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated.value = false
     sessionToken.value = null
     currentPassword.value = null
-    decryptedGithubToken.value = null
 
     // Clear persisted session
     await authSessionsDB.clear()
@@ -149,18 +128,6 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
-    // Decrypt sensitive data
-    try {
-      decryptedGithubToken.value = decryptFromStorage(
-        credentials.githubToken,
-        password,
-        credentials.salt
-      )
-    } catch {
-      await authSessionsDB.clear()
-      return false
-    }
-
     // Restore session state
     currentPassword.value = password
     userName.value = session.userName
@@ -202,51 +169,19 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
-    // Decrypt with old password
-    const githubToken = decryptFromStorage(
-      credentials.githubToken,
-      oldPassword,
-      credentials.salt
-    )
-
     // Create new salt and hash
     const newSalt = generateSalt()
     const newPasswordHash = hashPassword(newPassword, newSalt)
 
-    // Encrypt with new password
-    const newEncryptedGithubToken = encryptForStorage(githubToken, newPassword, newSalt)
-
     // Update credentials
     await userCredentialsDB.update({
       passwordHash: newPasswordHash,
-      salt: newSalt,
-      githubToken: newEncryptedGithubToken
+      salt: newSalt
     })
 
     // Update in-memory values
     currentPassword.value = newPassword
 
-    return true
-  }
-
-  // Update GitHub token
-  const updateGithubToken = async (newToken: string): Promise<boolean> => {
-    if (!currentPassword.value) {
-      return false
-    }
-
-    const credentials = await userCredentialsDB.get()
-    if (!credentials) {
-      return false
-    }
-
-    const encryptedToken = encryptForStorage(newToken, currentPassword.value, credentials.salt)
-
-    await userCredentialsDB.update({
-      githubToken: encryptedToken
-    })
-
-    decryptedGithubToken.value = newToken
     return true
   }
 
@@ -273,7 +208,6 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     checkAutoLock,
     changePassword,
-    updateGithubToken,
     updateUserName
   }
 })

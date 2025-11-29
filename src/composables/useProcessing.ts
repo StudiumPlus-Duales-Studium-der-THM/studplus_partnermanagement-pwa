@@ -195,12 +195,6 @@ export function useProcessing() {
       return false
     }
 
-    const githubToken = authStore.githubToken
-    if (!githubToken) {
-      error.value = 'GitHub Token nicht konfiguriert'
-      return false
-    }
-
     const company = companiesStore.getCompanyById(note.selectedCompanyId)
     if (!company) {
       error.value = 'Unternehmen nicht gefunden'
@@ -222,7 +216,6 @@ export function useProcessing() {
       const title = `[${company.shortName || company.name}] - ${titleDate} - ${authStore.userName}`
 
       const issue = await createIssue(
-        githubToken,
         title,
         issueBody,
         ['partner-kontakt', company.shortName.toLowerCase().replace(/\s+/g, '-')]

@@ -34,12 +34,6 @@
                 :value="3"
                 title="Passwort"
               ></v-stepper-item>
-              <v-divider></v-divider>
-              <v-stepper-item
-                :complete="step > 4"
-                :value="4"
-                title="GitHub"
-              ></v-stepper-item>
             </v-stepper-header>
 
             <v-stepper-window>
@@ -64,9 +58,6 @@
                     </v-list-item>
                     <v-list-item prepend-icon="mdi-lock">
                       Ein Passwort zum Schutz der App
-                    </v-list-item>
-                    <v-list-item prepend-icon="mdi-github">
-                      Einen GitHub Personal Access Token
                     </v-list-item>
                   </v-list>
                 </v-card-text>
@@ -147,46 +138,6 @@
                   <v-btn
                     color="primary"
                     :disabled="!isPasswordValid"
-                    @click="step = 4"
-                  >
-                    Weiter
-                    <v-icon end>mdi-arrow-right</v-icon>
-                  </v-btn>
-                </v-card-actions>
-              </v-stepper-window-item>
-
-              <!-- Step 4: GitHub Token -->
-              <v-stepper-window-item :value="4">
-                <v-card-text>
-                  <v-text-field
-                    v-model="formData.githubToken"
-                    label="GitHub Personal Access Token"
-                    :type="showToken ? 'text' : 'password'"
-                    prepend-inner-icon="mdi-github"
-                    :append-inner-icon="showToken ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showToken = !showToken"
-                    :rules="[rules.githubToken]"
-                    variant="outlined"
-                    class="mb-4"
-                  ></v-text-field>
-
-                  <v-alert type="info" variant="tonal" density="compact">
-                    <p class="text-caption mb-0">
-                      Erstellen Sie einen Fine-grained PAT mit Berechtigungen für
-                      <strong>Issues: Read/Write</strong> und
-                      <strong>Contents: Read</strong>.
-                    </p>
-                  </v-alert>
-                </v-card-text>
-                <v-card-actions>
-                  <v-btn variant="text" @click="step = 3">
-                    <v-icon start>mdi-arrow-left</v-icon>
-                    Zurück
-                  </v-btn>
-                  <v-spacer></v-spacer>
-                  <v-btn
-                    color="primary"
-                    :disabled="!isFormValid"
                     :loading="isLoading"
                     @click="completeSetup"
                   >
@@ -195,6 +146,7 @@
                   </v-btn>
                 </v-card-actions>
               </v-stepper-window-item>
+
             </v-stepper-window>
           </v-stepper>
         </v-card>
@@ -209,7 +161,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { rules } from '@/utils/validators'
-import { validatePassword, validateGitHubToken } from '@/utils/validators'
+import { validatePassword } from '@/utils/validators'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -218,13 +170,11 @@ const notificationStore = useNotificationStore()
 const step = ref(1)
 const isLoading = ref(false)
 const showPassword = ref(false)
-const showToken = ref(false)
 
 const formData = ref({
   userName: '',
   password: '',
-  passwordConfirm: '',
-  githubToken: ''
+  passwordConfirm: ''
 })
 
 const isPasswordValid = computed(() => {
@@ -236,8 +186,7 @@ const isPasswordValid = computed(() => {
 const isFormValid = computed(() => {
   return (
     formData.value.userName &&
-    isPasswordValid.value &&
-    validateGitHubToken(formData.value.githubToken).valid
+    isPasswordValid.value
   )
 })
 
@@ -249,8 +198,7 @@ const completeSetup = async () => {
   try {
     await authStore.completeSetup({
       userName: formData.value.userName,
-      password: formData.value.password,
-      githubToken: formData.value.githubToken
+      password: formData.value.password
     })
 
     notificationStore.success('Einrichtung abgeschlossen!')

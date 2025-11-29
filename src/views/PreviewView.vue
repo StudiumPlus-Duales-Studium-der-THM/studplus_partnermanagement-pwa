@@ -246,9 +246,7 @@ const contactSelection = ref<string | null>(null)
 // Load note
 onMounted(async () => {
   // Initialize companies store
-  if (authStore.githubToken) {
-    await companiesStore.initialize(authStore.githubToken)
-  }
+  await companiesStore.initialize()
 
   const noteId = route.params.id as string
   const loadedNote = await voiceNotesStore.getNoteById(noteId)
@@ -546,7 +544,7 @@ const sendDirectly = async () => {
       labels.push(company.shortName.toLowerCase().replace(/\s+/g, '-'))
     }
 
-    const issue = await createIssue(githubToken, title, issueBody, labels)
+    const issue = await createIssue(title, issueBody, labels)
 
     await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
     await voiceNotesStore.updateStatus(note.value.id, NoteStatus.SENT)
@@ -603,7 +601,7 @@ const sendNote = async () => {
       labels.push(company.shortName.toLowerCase().replace(/\s+/g, '-'))
     }
 
-    const issue = await createIssue(githubToken, title, issueBody, labels)
+    const issue = await createIssue(title, issueBody, labels)
 
     await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
 

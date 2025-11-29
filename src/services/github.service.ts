@@ -10,12 +10,12 @@ const GITHUB_API_BASE = 'https://api.github.com'
 const REPO_OWNER = import.meta.env.VITE_GITHUB_REPO_OWNER || 'StudiumPlus-Duales-Studium-der-THM'
 const REPO_NAME = import.meta.env.VITE_GITHUB_REPO_NAME || 'studiumplus-partner-management'
 const COMPANIES_PATH = import.meta.env.VITE_COMPANIES_JSON_PATH || 'companies.json'
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
 
 /**
  * Creates a GitHub issue
  */
 export const createIssue = async (
-  token: string,
   title: string,
   body: string,
   labels: string[] = ['partner-kontakt']
@@ -31,7 +31,7 @@ export const createIssue = async (
     request,
     {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `token ${GITHUB_TOKEN}`,
         Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
         'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
@@ -45,12 +45,12 @@ export const createIssue = async (
 /**
  * Fetches companies.json from the repository
  */
-export const fetchCompanies = async (token: string): Promise<CompaniesData> => {
+export const fetchCompanies = async (): Promise<CompaniesData> => {
   const response = await axios.get<GitHubContentResponse>(
     `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${COMPANIES_PATH}`,
     {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `token ${GITHUB_TOKEN}`,
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
       }
@@ -64,15 +64,13 @@ export const fetchCompanies = async (token: string): Promise<CompaniesData> => {
 }
 
 /**
- * Validates a GitHub token by checking rate limit
+ * Validates the configured GitHub token by checking rate limit
  */
-export const validateToken = async (
-  token: string
-): Promise<{ valid: boolean; scopes: string[]; remaining: number }> => {
+export const validateToken = async (): Promise<{ valid: boolean; scopes: string[]; remaining: number }> => {
   try {
     const response = await axios.get(`${GITHUB_API_BASE}/rate_limit`, {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `token ${GITHUB_TOKEN}`,
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
       }
@@ -96,11 +94,9 @@ export const validateToken = async (
 }
 
 /**
- * Checks if token has required permissions
+ * Checks if the configured token has required permissions
  */
-export const checkTokenPermissions = async (
-  token: string
-): Promise<{ canReadContent: boolean; canWriteIssues: boolean }> => {
+export const checkTokenPermissions = async (): Promise<{ canReadContent: boolean; canWriteIssues: boolean }> => {
   let canReadContent = false
   let canWriteIssues = false
 
@@ -110,7 +106,7 @@ export const checkTokenPermissions = async (
       `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${COMPANIES_PATH}`,
       {
         headers: {
-          Authorization: `token ${token}`,
+          Authorization: `token ${GITHUB_TOKEN}`,
           Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
         }
@@ -125,7 +121,7 @@ export const checkTokenPermissions = async (
   try {
     await axios.get(`${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/issues?per_page=1`, {
       headers: {
-        Authorization: `token ${token}`,
+        Authorization: `token ${GITHUB_TOKEN}`,
         Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'StudiumPlus-Partner-PWA/1.0'
       }
