@@ -1,33 +1,35 @@
-export interface OpenAITranscriptionResponse {
+// nele.ai API Types
+export interface NeleAITranscriptionResponse {
   text: string
+  usage: {
+    credits: string
+  }
 }
 
-export interface OpenAIChatMessage {
+export interface NeleAIChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
+  name?: string
+  attachments?: Array<{ id: string; name: string }>
+  results?: any
+  tools?: any[]
 }
 
-export interface OpenAIChatRequest {
+export interface NeleAIChatRequest {
   model: string
-  messages: OpenAIChatMessage[]
+  messages: NeleAIChatMessage[]
   temperature?: number
   max_tokens?: number
+  stream?: boolean
 }
 
-export interface OpenAIChatResponse {
-  id: string
-  object: string
-  created: number
-  model: string
-  choices: {
-    index: number
-    message: OpenAIChatMessage
-    finish_reason: string
-  }[]
+export interface NeleAIChatSyncResponse {
+  content: string
+  results?: any
+  web_search_results?: any[]
+  tool_calls?: any[]
   usage: {
-    prompt_tokens: number
-    completion_tokens: number
-    total_tokens: number
+    credits: string
   }
 }
 

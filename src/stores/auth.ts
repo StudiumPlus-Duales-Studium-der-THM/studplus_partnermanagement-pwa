@@ -20,7 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // API keys from environment variables
   const githubToken = computed(() => import.meta.env.VITE_GITHUB_TOKEN || '')
-  const openaiApiKey = computed(() => import.meta.env.VITE_OPENAI_API_KEY || '')
+  const neleAiApiKey = computed(() => import.meta.env.VITE_NELE_AI_API_KEY || '')
 
   // Check if initial setup is complete
   const checkSetupStatus = async () => {
@@ -198,7 +198,7 @@ export const useAuthStore = defineStore('auth', () => {
     userName,
     sessionToken,
     githubToken,
-    openaiApiKey,
+    neleAiApiKey,
     checkSetupStatus,
     completeSetup,
     login,

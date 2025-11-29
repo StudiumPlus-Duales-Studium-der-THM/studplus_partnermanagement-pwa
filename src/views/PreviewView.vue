@@ -393,16 +393,16 @@ const processText = async () => {
     }
   } else {
     // Custom company - process with custom names
-    const apiKey = authStore.openaiApiKey
+    const apiKey = authStore.neleAiApiKey
     if (!apiKey) {
-      notificationStore.error('OpenAI API-Key nicht konfiguriert')
+      notificationStore.error('nele.ai API-Key nicht konfiguriert')
       return
     }
 
     try {
       await voiceNotesStore.updateStatus(note.value.id, NoteStatus.PROCESSING)
 
-      const { processText: processTextAPI } = await import('@/services/openai.service')
+      const { processText: processTextAPI } = await import('@/services/nele.service')
       const result = await processTextAPI(
         editedTranscription.value || '',
         companyName,

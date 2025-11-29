@@ -5,8 +5,8 @@ Eine Progressive Web App (PWA) für StudiumPlus-Direktoren zur Aufnahme und Vera
 ## Funktionen
 
 - **Sprachaufnahme**: Aufnehmen von Gesprächsnotizen mit dem Mikrofon
-- **KI-Transkription**: Automatische Transkription via OpenAI Whisper
-- **Textaufbereitung**: Professionelle Aufbereitung via GPT-4o-mini
+- **KI-Transkription**: Automatische Transkription via nele.ai (azure-whisper)
+- **Textaufbereitung**: Professionelle Aufbereitung via nele.ai (azure-gpt-4o-mini)
 - **GitHub Integration**: Automatische Erstellung von Issues im Repository
 - **Offline-Fähig**: PWA mit Service Worker für Offline-Nutzung
 - **Sicher**: Passwort-geschützte Authentifizierung mit verschlüsselter Datenspeicherung
@@ -41,8 +41,11 @@ npm run dev
 Erstellen Sie eine `.env.local` Datei mit folgenden Konfigurationen:
 
 ```bash
-# OpenAI API Key
-VITE_OPENAI_API_KEY=sk-...
+# nele.ai API Configuration
+VITE_NELE_AI_API_KEY=your-nele-api-key-here
+VITE_NELE_AI_TRANSCRIPTION_MODEL=azure-whisper
+VITE_NELE_AI_CHAT_MODEL_COMPANY_MATCHING=azure-gpt-4o-mini
+VITE_NELE_AI_CHAT_MODEL_TEXT_PROCESSING=azure-gpt-4o-mini
 
 # GitHub Token (Fine-grained PAT mit Issues: Read/Write, Contents: Read)
 VITE_GITHUB_TOKEN=ghp_...
@@ -50,6 +53,7 @@ VITE_GITHUB_TOKEN=ghp_...
 # GitHub Repository Configuration
 VITE_GITHUB_REPO_OWNER=StudiumPlus-Duales-Studium-der-THM
 VITE_GITHUB_REPO_NAME=studiumplus-partner-management
+VITE_COMPANIES_JSON_PATH=companies.json
 ```
 
 ### GitHub Token erstellen
@@ -79,7 +83,7 @@ npm run preview
 ```
 src/
 ├── stores/          # Pinia State Management
-├── services/        # API Services (OpenAI, GitHub, DB)
+├── services/        # API Services (nele.ai, GitHub, DB)
 ├── composables/     # Vue Composables
 ├── views/           # Page Components
 ├── types/           # TypeScript Interfaces

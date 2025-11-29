@@ -29,17 +29,15 @@ export const validateGitHubToken = (token: string): { valid: boolean; message: s
 }
 
 /**
- * Validate OpenAI API key format
+ * Validate nele.ai API key format
  */
-export const validateOpenAIKey = (key: string): { valid: boolean; message: string } => {
+export const validateNeleAIKey = (key: string): { valid: boolean; message: string } => {
   if (!key || key.length < 10) {
     return { valid: false, message: 'API-Key ist zu kurz' }
   }
 
-  if (!key.startsWith('sk-')) {
-    return { valid: false, message: 'Ungültiges API-Key-Format (muss mit sk- beginnen)' }
-  }
-
+  // nele.ai API keys don't have a specific prefix requirement
+  // Just check for minimum length
   return { valid: true, message: '' }
 }
 
@@ -87,9 +85,9 @@ export const rules = {
     return result.valid || result.message
   },
 
-  openaiKey: (v: string) => {
+  neleAIKey: (v: string) => {
     if (!v) return true // Optional
-    const result = validateOpenAIKey(v)
+    const result = validateNeleAIKey(v)
     return result.valid || result.message
   },
 
