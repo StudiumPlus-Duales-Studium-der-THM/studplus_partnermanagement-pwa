@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCompaniesStore } from '@/stores/companies'
 import { useVoiceNotesStore } from '@/stores/voiceNotes'
 import { useNotificationStore } from '@/stores/notification'
-import { transcribeAudio, matchCompany, processText } from '@/services/openai.service'
+import { transcribeAudio, matchCompany, processText } from '@/services/nele.service'
 import { createIssue, formatIssueBody } from '@/services/github.service'
 import { NoteStatus } from '@/types'
 import { format } from 'date-fns'
@@ -29,9 +29,9 @@ export function useProcessing() {
       return false
     }
 
-    const apiKey = authStore.openaiApiKey
+    const apiKey = authStore.neleAiApiKey
     if (!apiKey) {
-      error.value = 'OpenAI API-Key nicht konfiguriert'
+      error.value = 'nele.ai API-Key nicht konfiguriert'
       return false
     }
 
@@ -61,9 +61,9 @@ export function useProcessing() {
       return null
     }
 
-    const apiKey = authStore.openaiApiKey
+    const apiKey = authStore.neleAiApiKey
     if (!apiKey) {
-      error.value = 'OpenAI API-Key nicht konfiguriert'
+      error.value = 'nele.ai API-Key nicht konfiguriert'
       return null
     }
 
@@ -108,9 +108,9 @@ export function useProcessing() {
       return false
     }
 
-    const apiKey = authStore.openaiApiKey
+    const apiKey = authStore.neleAiApiKey
     if (!apiKey) {
-      error.value = 'OpenAI API-Key nicht konfiguriert'
+      error.value = 'nele.ai API-Key nicht konfiguriert'
       return false
     }
 

@@ -15,7 +15,7 @@ export const MIN_RECORDING_SECONDS = 3
 export const MAX_RECORDING_SECONDS = 300 // 5 minutes
 
 // API configuration
-export const OPENAI_API_BASE = 'https://api.openai.com/v1'
+export const NELE_AI_API_BASE = 'https://api.aieva.io/api:v1'
 export const GITHUB_API_BASE = 'https://api.github.com'
 
 // Retry configuration

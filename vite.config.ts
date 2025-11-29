@@ -31,10 +31,10 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/api\.openai\.com\/.*/i,
+            urlPattern: /^https:\/\/api\.aieva\.io\/.*/i,
             handler: 'NetworkOnly',
             options: {
-              cacheName: 'openai-api-cache'
+              cacheName: 'nele-ai-api-cache'
             }
           }
         ]

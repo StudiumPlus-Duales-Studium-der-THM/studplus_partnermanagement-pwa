@@ -1,16 +1,16 @@
 import axios from 'axios'
 import type {
-  OpenAITranscriptionResponse,
-  OpenAIChatRequest,
-  OpenAIChatResponse,
+  NeleAITranscriptionResponse,
+  NeleAIChatRequest,
+  NeleAIChatSyncResponse,
   CompanyMatchResult,
   ProcessedTextResponse
 } from '@/types'
 
-const OPENAI_API_BASE = 'https://api.openai.com/v1'
+const NELE_AI_API_BASE = 'https://api.aieva.io/api:v1'
 
 /**
- * Transcribes audio using OpenAI Whisper API
+ * Transcribes audio using nele.ai transcription API
  */
 export const transcribeAudio = async (
   audioBlob: Blob,
@@ -18,19 +18,23 @@ export const transcribeAudio = async (
 ): Promise<string> => {
   const formData = new FormData()
 
-  // Convert to mp3 file
-  const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mp3' })
+  // Get transcription model from environment variable
+  const transcriptionModel = import.meta.env.VITE_NELE_AI_TRANSCRIPTION_MODEL || 'azure-whisper'
+
+  // Convert to mp3 file (use audio/mpeg as MIME type)
+  const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mpeg' })
+
   formData.append('file', audioFile)
-  formData.append('model', 'whisper-1')
+  formData.append('model', transcriptionModel)
   formData.append('language', 'de')
 
-  const response = await axios.post<OpenAITranscriptionResponse>(
-    `${OPENAI_API_BASE}/audio/transcriptions`,
+  const response = await axios.post<NeleAITranscriptionResponse>(
+    `${NELE_AI_API_BASE}/transcription`,
     formData,
     {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'multipart/form-data'
+        Authorization: `Bearer ${apiKey}`
+        // Don't set Content-Type manually - let axios set it with correct boundary
       }
     }
   )
@@ -39,7 +43,7 @@ export const transcribeAudio = async (
 }
 
 /**
- * Matches a company from the transcription
+ * Matches a company from the transcription using nele.ai chat API
  * Note: Only sends matching-relevant fields to reduce token usage.
  * Contacts and other detailed data are excluded as they're not relevant for company identification.
  */
@@ -81,8 +85,11 @@ WICHTIG: Suche nach Namen, Alias, Standort oder Hinweisen im Text. Antworte NUR 
 
 Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
 
-  const request: OpenAIChatRequest = {
-    model: 'gpt-4o-mini',
+  // Get chat model from environment variable
+  const chatModel = import.meta.env.VITE_NELE_AI_CHAT_MODEL_COMPANY_MATCHING || 'gpt-4o-mini'
+
+  const request: NeleAIChatRequest = {
+    model: chatModel,
     messages: [
       {
         role: 'user',
@@ -93,8 +100,8 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
     max_tokens: 200
   }
 
-  const response = await axios.post<OpenAIChatResponse>(
-    `${OPENAI_API_BASE}/chat/completions`,
+  const response = await axios.post<NeleAIChatSyncResponse>(
+    `${NELE_AI_API_BASE}/chat-completion-sync`,
     request,
     {
       headers: {
@@ -104,12 +111,12 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
     }
   )
 
-  const content = response.data.choices[0].message.content
+  const content = response.data.content
   return JSON.parse(content) as CompanyMatchResult
 }
 
 /**
- * Processes and enhances the transcribed text
+ * Processes and enhances the transcribed text using nele.ai chat API
  * Also extracts conversation date and includes metadata section
  */
 export const processText = async (
@@ -158,8 +165,11 @@ WICHTIG für conversationDate:
 - NICHT Termine/Deadlines (die kommen in den Text)
 - Wenn nicht erwähnt: leerer String ""`
 
-  const request: OpenAIChatRequest = {
-    model: 'gpt-4o-mini',
+  // Get chat model from environment variable
+  const chatModel = import.meta.env.VITE_NELE_AI_CHAT_MODEL_TEXT_PROCESSING || 'gpt-4o-mini'
+
+  const request: NeleAIChatRequest = {
+    model: chatModel,
     messages: [
       {
         role: 'user',
@@ -170,8 +180,8 @@ WICHTIG für conversationDate:
     max_tokens: 1600
   }
 
-  const response = await axios.post<OpenAIChatResponse>(
-    `${OPENAI_API_BASE}/chat/completions`,
+  const response = await axios.post<NeleAIChatSyncResponse>(
+    `${NELE_AI_API_BASE}/chat-completion-sync`,
     request,
     {
       headers: {
@@ -181,7 +191,7 @@ WICHTIG für conversationDate:
     }
   )
 
-  const content = response.data.choices[0].message.content.trim()
+  const content = response.data.content.trim()
 
   // Parse JSON response
   const parsed = JSON.parse(content) as ProcessedTextResponse
