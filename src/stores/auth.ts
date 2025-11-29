@@ -6,8 +6,6 @@ import {
   hashPassword,
   generateSalt,
   verifyPassword,
-  encryptForStorage,
-  decryptFromStorage,
   generateSessionToken
 } from '@/services/encryption.service'
 import type { SetupData, UserCredentials, AuthSession } from '@/types'
