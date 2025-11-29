@@ -1,0 +1,1204 @@
+openapi: 3.1.0
+info:
+  title: nele.ai API
+  version: "1.0.0"
+  description: |
+    This OpenAPI document describes the public endpoints of the **nele.ai** API.  The API requires
+    Bearer token authentication for all protected operations.  The servers section points to
+    the production API base URL used by the nele.ai services.  Response examples and field
+    constraints are derived from the official API documentation【673156997595354†L65-L83】【192597924278095†L112-L161】.
+servers:
+  - url: https://api.aieva.io/api:v1
+    description: Production API base URL
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    # Model used for audio transcription
+    TranscriptionRequest:
+      type: object
+      properties:
+        model:
+          $ref: '#/components/schemas/TranscriptionModel'
+        file:
+          type: string
+          format: binary
+          description: >-
+            Audio file to transcribe.  Supports aac, flac, mp3, mpeg, mpga, m4a, ogg, wav and webm.
+            Maximum size 20 MB【545893155843003†screenshot】.
+        language:
+          type: string
+          nullable: true
+          description: >-
+            Language code (ISO-639-1).  Optional but improves transcription accuracy【545893155843003†screenshot】.
+      required: [model, file]
+    TranscriptionModel:
+      type: string
+      description: Selects the transcription engine.
+      enum:
+        - azure-fast-transcription
+        - azure-whisper
+    TranscriptionResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Transcribed text.
+        usage:
+          type: object
+          properties:
+            credits:
+              type: string
+              description: Credit consumption for this call【545893155843003†screenshot】.
+          required: [credits]
+      required: [text, usage]
+
+    # Chat completion request
+    ChatCompletionMessage:
+      type: object
+      description: Message representing one entry in the chat history【117559635825302†screenshot】.
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          description: >-
+            Role of the message in the conversation.
+        content:
+          type: string
+          description: Message content.  Required for all roles【117559635825302†screenshot】.
+        name:
+          type: string
+          nullable: true
+          description: Optional name for function-calling messages.
+        attachments:
+          type: array
+          items:
+            type: object
+          nullable: true
+          description: >-
+            Attachments previously uploaded via the image-attachment endpoint.  Each item must contain an
+            `id` and `name` property.  Only used with image prompts【117559635825302†screenshot】.
+        results:
+          type: object
+          nullable: true
+          description: >-
+            Knowledge base search results returned by previous search operations; see document collection
+            APIs for the structure【176237484393036†screenshot】.
+        tools:
+          type: array
+          items:
+            type: object
+          nullable: true
+      required:
+        - role
+        - content
+
+    ChatCompletionRequest:
+      type: object
+      description: Body schema for chat completion (streamed and sync)【106337155682601†screenshot】.
+      properties:
+        model:
+          type: string
+          description: >-
+            AI model to use.  Examples include `gpt-4o`, `gpt-4o-mini` and other models returned
+            by the `/models` endpoint【106337155682601†screenshot】.
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionMessage'
+          minItems: 1
+          description: >-
+            Conversation history.  The last message should be from the user.  See
+            `ChatCompletionMessage` for details【117559635825302†screenshot】.
+        max_tokens:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: >-
+            Maximum number of tokens to generate【106337155682601†screenshot】.
+        temperature:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 1
+          description: Controls randomness; lower values make output more deterministic【106337155682601†screenshot】.
+        documentCollectionId:
+          type: string
+          nullable: true
+          description: >-
+            ID of a document collection to query.  Cannot be used together with `web_search`【93052818549966†screenshot】.
+        tool_choice:
+          type: object
+          nullable: true
+          description: >-
+            Controls whether a tool (function) should be called in the completion.
+        web_search:
+          type: object
+          nullable: true
+          description: >-
+            Optional web search configuration.  Not allowed if `documentCollectionId` is specified【93052818549966†screenshot】.
+        stream:
+          type: boolean
+          default: false
+          description: Whether to receive a Server-Sent-Events (SSE) stream.
+      required:
+        - model
+        - messages
+    ChatCompletionSyncResponse:
+      type: object
+      description: Response schema for synchronous chat completions【967857968126194†screenshot】.
+      properties:
+        content:
+          type: string
+        results:
+          type: object
+          nullable: true
+          description: >-
+            Results returned from document collections; includes `title` and `attachments`【967857968126194†screenshot】.
+        web_search_results:
+          type: array
+          items:
+            type: object
+          nullable: true
+        tool_calls:
+          type: array
+          items:
+            type: object
+          nullable: true
+        usage:
+          type: object
+          properties:
+            credits:
+              type: string
+          required: [credits]
+      required: [content, usage]
+
+    # Document collection schemas
+    DocumentCollection:
+      type: object
+      properties:
+        id:
+          type: string
+        enabled:
+          type: boolean
+        title:
+          type: string
+        description:
+          type: [string, 'null']
+        enabled_models:
+          type: array
+          items:
+            type: string
+        items_count:
+          type: integer
+          nullable: true
+        has_unfinished_items:
+          type: boolean
+          nullable: true
+        has_assigned_users:
+          type: boolean
+          nullable: true
+        has_assigned_groups:
+          type: boolean
+          nullable: true
+        permission:
+          type: object
+          properties:
+            view:
+              type: boolean
+            update:
+              type: boolean
+            delete:
+              type: boolean
+          required: [view, update, delete]
+      required: [id, enabled, title, enabled_models, permission]
+
+    DocumentCollectionListResponse:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        lastPage:
+          type: integer
+        totalItems:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentCollection'
+      required: [currentPage, lastPage, totalItems, items]
+
+    DocumentCollectionItemSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+        progress_percent:
+          type: integer
+        updated_at:
+          type: integer
+          nullable: true
+      required: [id, title, status, type, progress_percent, updated_at]
+
+    DocumentCollectionItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+        updated_at:
+          type: integer
+          nullable: true
+      required: [id, title, status, type, updated_at]
+
+    DocumentSearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        limit:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 20
+        max_distance:
+          type: number
+          nullable: true
+          minimum: 0
+          maximum: 1
+      required: [query]
+
+    DocumentSearchResult:
+      type: object
+      properties:
+        created_timestamp:
+          type: integer
+          nullable: true
+        filename:
+          type: string
+        content:
+          type: string
+        context:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required: [filename, content]
+
+    ImageGenerationRequest:
+      type: object
+      properties:
+        model:
+          type: string
+          enum:
+            - azure-dall-e-3
+            - dall-e-3
+            - gpt-image-1
+        prompt:
+          type: string
+          description: Description of the desired image【673156997595354†L75-L83】.
+        modelConfiguration:
+          type: object
+          properties:
+            quality:
+              type: string
+              description: >-
+                Image quality.  For `azure-dall-e-3` or `dall-e-3`, use `standard` or `hd`.  For
+                `gpt-image-1`, choose from `auto`, `low`, `medium` or `high`【673156997595354†L97-L100】.
+            size:
+              type: string
+              description: >-
+                Output size.  Allowed values depend on the model: `1024x1024`, `1792x1024` or
+                `1024x1792` for Azure/DALL-E; `auto`, `1024x1024`, `1536x1024` or `1024x1536` for
+                GPT-Image【673156997595354†L108-L112】.
+            style:
+              type: string
+              nullable: true
+              description: Only supported for DALL-E models.  Use `vivid` or `natural`【673156997595354†L113-L122】.
+            background:
+              type: string
+              nullable: true
+              description: Only supported for `gpt-image-1`.  Use `auto`, `transparent` or `opaque`【673156997595354†L123-L131】.
+          required: [quality, size]
+        response_format:
+          type: string
+          enum: [url, b64_json]
+          default: url
+        user:
+          type: string
+          nullable: true
+      required: [model, prompt, modelConfiguration]
+
+    ImageGenerationResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        expires:
+          type: integer
+          nullable: true
+        revisedPrompt:
+          type: string
+          nullable: true
+        usage:
+          type: object
+          properties:
+            credits:
+              type: string
+          required: [credits]
+      required: [url, width, height, expires, revisedPrompt, usage]
+
+    ImageAttachmentResponse:
+      type: object
+      properties:
+        path:
+          type: string
+        expires_at:
+          type: integer
+      required: [path, expires_at]
+
+    ModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              is_usable:
+                type: boolean
+              supports_collection_prompts:
+                type: boolean
+              title:
+                type: string
+              description:
+                type: string
+              company:
+                type: string
+              provider:
+                type: string
+              consumption:
+                type: string
+            required:
+              - id
+              - is_usable
+              - supports_collection_prompts
+              - title
+              - description
+              - company
+              - provider
+              - consumption
+        team_models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelsResponse/properties/models/items'
+        document_collections:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              is_usable:
+                type: boolean
+              title:
+                type: string
+              enabled_models:
+                type: array
+                items:
+                  type: string
+            required: [id, is_usable, title, enabled_models]
+        image_generators:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelsResponse/properties/models/items'
+      required: [models, team_models, document_collections, image_generators]
+
+    SettingsResponse:
+      type: object
+      properties:
+        locale:
+          type: string
+        default_model_name:
+          type: string
+      required: [locale, default_model_name]
+
+    UserPromptsResponse:
+      type: object
+      description: Structure representing user prompts and folders【831212124082336†L123-L239】.
+      properties:
+        prompts:
+          type: object
+          nullable: true
+          properties:
+            updated_at:
+              type: integer
+              nullable: true
+            version:
+              type: integer
+            update_token:
+              type: string
+              nullable: true
+            store:
+              type: array
+              items:
+                $ref: '#/components/schemas/PromptNode'
+          required: [updated_at, version, store]
+      required: [prompts]
+    PromptNode:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [folder, prompt]
+        title:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptNode'
+          nullable: true
+        template:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+      required: [id, type, title]
+
+paths:
+  /transcription:
+    post:
+      operationId: audioTranscribe
+      tags: [Audio]
+      summary: Transcribe audio to text
+      description: Converts an uploaded audio file into text using the selected transcription model【545893155843003†screenshot】.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TranscriptionRequest'
+      responses:
+        '200':
+          description: Successful transcription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TranscriptionResponse'
+        '400':
+          description: Unknown or unsupported model/language
+        '401':
+          description: Authentication failed
+        '402':
+          description: Credit limit exceeded
+        '413':
+          description: Uploaded file too large
+        '422':
+          description: Validation error
+  /chat-completion:
+    post:
+      operationId: chatCompletion
+      tags: [Chat]
+      summary: Generate a streamed chat completion
+      description: Generates a chat response streamed using Server-Sent-Events (SSE)【401754422063613†screenshot】.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: SSE stream of chat completions
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          description: Authentication failed
+        '402':
+          description: Credit limit exceeded
+        '422':
+          description: Validation or model/collection error
+  /chat-completion-sync:
+    post:
+      operationId: chatCompletionSync
+      tags: [Chat]
+      summary: Generate a synchronous chat completion
+      description: Returns the full chat completion response synchronously【967857968126194†screenshot】.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+      responses:
+        '200':
+          description: Successful synchronous completion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionSyncResponse'
+        '401':
+          description: Authentication failed
+        '402':
+          description: Credit limit exceeded
+        '422':
+          description: Validation or model/collection error
+  /document-collections:
+    get:
+      operationId: documentCollectionList
+      tags: [DocumentCollection]
+      summary: List document collections
+      description: Returns a paginated list of document collections【641418256305864†screenshot】.
+      parameters:
+        - in: query
+          name: current_page
+          schema:
+            type: integer
+            minimum: 1
+            nullable: true
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 0
+            nullable: true
+        - in: query
+          name: search
+          schema:
+            type: string
+            nullable: true
+        - in: query
+          name: sort_key
+          schema:
+            type: string
+            enum: [title, description]
+            nullable: true
+        - in: query
+          name: sort_order
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            nullable: true
+      responses:
+        '200':
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentCollectionListResponse'
+        '401':
+          description: Authentication failed
+        '422':
+          description: Validation error
+    post:
+      operationId: documentCollectionCreate
+      tags: [DocumentCollection]
+      summary: Create a document collection
+      description: Create a new collection for storing documents【125700204583031†screenshot】.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+                enabled_models:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+              required: [title]
+      responses:
+        '200':
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                required: [id]
+        '401':
+          description: Authentication failed
+        '422':
+          description: Validation error
+  /document-collections/{collection}:
+    get:
+      operationId: documentCollectionRead
+      tags: [DocumentCollection]
+      summary: Get collection details
+      description: Retrieve details of a document collection【296301397957190†L41-L132】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentCollection'
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+    put:
+      operationId: documentCollectionUpdate
+      tags: [DocumentCollection]
+      summary: Update a document collection
+      description: Update title, description, enabled flag or models of a document collection【340887845609453†L41-L99】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  nullable: true
+                description:
+                  type: string
+                  nullable: true
+                enabled:
+                  type: boolean
+                  nullable: true
+                enabled_models:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+      responses:
+        '200':
+          description: Collection updated
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+        '422':
+          description: Validation error
+    delete:
+      operationId: documentCollectionDelete
+      tags: [DocumentCollection]
+      summary: Delete a document collection
+      description: Delete an existing document collection【315495549156154†L41-L77】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Collection deleted
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+  /document-collections/{collection}/embed:
+    put:
+      operationId: documentCollectionEmbed
+      tags: [DocumentCollection]
+      summary: Embed all items in a collection
+      description: Trigger embedding of all embeddable items in the collection asynchronously【486237322733064†L41-L72】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Embedding started
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+        '422':
+          description: Validation error
+  /document-collections/{collection}/search:
+    post:
+      operationId: documentCollectionSearch
+      tags: [DocumentCollection]
+      summary: Search within a collection
+      description: Search for relevant snippets within the specified collection【192597924278095†L41-L101】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentSearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentSearchResult'
+                  usage:
+                    type: object
+                    properties:
+                      credits:
+                        type: string
+                    required: [credits]
+                required: [results, usage]
+        '401':
+          description: Authentication failed
+        '402':
+          description: Credit limit exceeded
+        '404':
+          description: Collection not found
+        '422':
+          description: Validation error
+
+  # Document collection item operations
+  /document-collections/{collection}/items:
+    get:
+      operationId: documentCollectionItemList
+      tags: [DocumentCollectionItem]
+      summary: List items in a collection
+      description: Get a paginated list of document collection items【544438903976765†L45-L96】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: currentPage
+          schema:
+            type: integer
+            minimum: 1
+            nullable: true
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            minimum: 0
+            nullable: true
+      responses:
+        '200':
+          description: Items list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentPage:
+                    type: integer
+                  lastPage:
+                    type: integer
+                  totalItems:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentCollectionItemSummary'
+                required: [currentPage, lastPage, totalItems, items]
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+        '422':
+          description: Validation error
+  /document-collections/{collection}:
+    post:
+      operationId: documentCollectionItemCreate
+      tags: [DocumentCollectionItem]
+      summary: Upload a document to a collection
+      description: >-
+        Upload a file into a document collection.  Set `auto_embed` to false to
+        postpone embedding【99630557347194†L87-L103】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                auto_embed:
+                  type: boolean
+                  nullable: true
+                context:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+              required: [file]
+      responses:
+        '200':
+          description: Document uploaded and embedded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                required: [id]
+        '202':
+          description: Document uploaded; embedding queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                required: [id]
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+        '413':
+          description: File too large
+        '415':
+          description: Unsupported media type
+        '422':
+          description: Validation error
+  /document-collections/{collection}/from-url:
+    post:
+      operationId: documentCollectionItemFromUrl
+      tags: [DocumentCollectionItem]
+      summary: Add document to a collection from a URL
+      description: Fetches and processes a document from a given URL【575166524049885†L45-L160】.
+      parameters:
+        - in: path
+          name: collection
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                auto_embed:
+                  type: boolean
+                  nullable: true
+                auth:
+                  type: object
+                  nullable: true
+                  description: Authentication for fetching the URL.
+                  properties:
+                    type:
+                      type: string
+                      enum: [basic, bearer, custom]
+                    username:
+                      type: string
+                      nullable: true
+                    password:
+                      type: string
+                      nullable: true
+                    token:
+                      type: string
+                      nullable: true
+                    header:
+                      type: string
+                      nullable: true
+                    value:
+                      type: string
+                      nullable: true
+                  required: [type]
+                context:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+              required: [url]
+      responses:
+        '202':
+          description: URL accepted and queued for processing【575166524049885†L126-L137】
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                required: [id]
+        '401':
+          description: Authentication failed
+        '404':
+          description: Collection not found
+        '422':
+          description: Validation error
+
+  # Operations on individual collection items
+  /document-collection-items/{item}:
+    get:
+      operationId: documentCollectionItemRead
+      tags: [DocumentCollectionItem]
+      summary: Get document item information
+      description: Retrieve information about a specific document collection item【540011240268664†L45-L138】.
+      parameters:
+        - in: path
+          name: item
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentCollectionItem'
+        '401':
+          description: Authentication failed
+        '404':
+          description: Item not found
+    delete:
+      operationId: documentCollectionItemDelete
+      tags: [DocumentCollectionItem]
+      summary: Delete a document collection item
+      description: Remove a document from the collection【60682956125415†L45-L73】.
+      parameters:
+        - in: path
+          name: item
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Item deleted (no content)
+        '401':
+          description: Authentication failed
+        '404':
+          description: Item not found
+  /document-collection-items/{item}/embed:
+    put:
+      operationId: documentCollectionItemEmbed
+      tags: [DocumentCollectionItem]
+      summary: Embed a single document item
+      description: Trigger embedding of the specified document item asynchronously【702055375310254†L45-L76】.
+      parameters:
+        - in: path
+          name: item
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Embedding started
+        '401':
+          description: Authentication failed
+        '404':
+          description: Item not found
+        '422':
+          description: Validation error
+
+  # Image generation and retrieval
+  /image:
+    post:
+      operationId: imageGenerate
+      tags: [Image]
+      summary: Generate an image
+      description: Creates an image using the specified generation model and prompt【673156997595354†L71-L112】.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageGenerationRequest'
+      responses:
+        '200':
+          description: Image generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageGenerationResponse'
+        '400':
+          description: Invalid input or unsupported parameter
+        '401':
+          description: Authentication failed
+        '402':
+          description: Credit limit exceeded
+        '422':
+          description: Validation error
+  /image/{path}:
+    get:
+      operationId: imageRetrieve
+      tags: [Image]
+      summary: Retrieve a generated image
+      description: Returns the PNG image previously generated【469705474620507†L47-L75】.
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Image file (PNG)
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Authentication failed
+        '404':
+          description: Image not found
+
+  /image-attachment:
+    post:
+      operationId: imageAttachmentUpload
+      tags: [ImageAttachment]
+      summary: Upload an attachment image
+      description: Upload an attachment image for use in chat prompts.  Allowed file types are PNG, JPG and WEBP【221135073050082†L55-L76】.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required: [file]
+      responses:
+        '200':
+          description: Attachment uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageAttachmentResponse'
+        '401':
+          description: Authentication failed
+        '413':
+          description: Uploaded file too large
+        '415':
+          description: Unsupported media type
+        '422':
+          description: Validation error
+
+  # Models, settings and user prompts
+  /models:
+    get:
+      operationId: modelLoad
+      tags: [Model]
+      summary: List available models
+      description: Retrieve available AI models, team models and document collections【483886655187637†L51-L100】.
+      parameters:
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+          example: en
+      responses:
+        '200':
+          description: Models list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelsResponse'
+        '401':
+          description: Authentication failed
+  /settings:
+    get:
+      operationId: settingsLoad
+      tags: [Settings]
+      summary: Get user settings
+      description: Returns the user’s locale and default model【964798362143967†L53-L100】.
+      responses:
+        '200':
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+        '401':
+          description: Authentication failed
+  /prompts/user:
+    get:
+      operationId: userPromptsLoad
+      tags: [UserPrompts]
+      summary: List user prompts
+      description: Returns folders and prompts defined by the user【831212124082336†L55-L245】.
+      parameters:
+        - in: header
+          name: If-None-Match
+          schema:
+            type: string
+          example: W/"etag"
+          required: false
+      responses:
+        '200':
+          description: User prompts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPromptsResponse'
+        '304':
+          description: Not modified (prompts unchanged)
+        '401':
+          description: Authentication failed
