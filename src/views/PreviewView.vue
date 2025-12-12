@@ -393,12 +393,6 @@ const processText = async () => {
     }
   } else {
     // Custom company - process with custom names
-    const apiKey = authStore.neleAiApiKey
-    if (!apiKey) {
-      notificationStore.error('nele.ai API-Key nicht konfiguriert')
-      return
-    }
-
     try {
       await voiceNotesStore.updateStatus(note.value.id, NoteStatus.PROCESSING)
 
@@ -407,8 +401,7 @@ const processText = async () => {
         editedTranscription.value || '',
         companyName,
         contactName,
-        authStore.userName || 'Unbekannt',
-        apiKey
+        authStore.userName || 'Unbekannt'
       )
 
       // Save conversation date if found
@@ -491,12 +484,6 @@ Keine konkreten nächsten Schritte festgelegt.`
 const sendDirectly = async () => {
   if (!note.value || !contactSelection.value) return
 
-  const githubToken = authStore.githubToken
-  if (!githubToken) {
-    notificationStore.error('GitHub Token nicht konfiguriert')
-    return
-  }
-
   isSending.value = true
 
   try {
@@ -563,12 +550,6 @@ const sendDirectly = async () => {
 // Send to GitHub
 const sendNote = async () => {
   if (!note.value || !contactSelection.value) return
-
-  const githubToken = authStore.githubToken
-  if (!githubToken) {
-    notificationStore.error('GitHub Token nicht konfiguriert')
-    return
-  }
 
   isSending.value = true
 

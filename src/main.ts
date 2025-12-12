@@ -21,23 +21,23 @@ app.use(vuetify)
 
 app.mount('#app')
 
-// Service Worker registration
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/sw.js')
-      console.log('Service Worker registered:', registration)
+// Service Worker registration - DISABLED FOR DEVELOPMENT
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', async () => {
+//     try {
+//       const registration = await navigator.serviceWorker.register('/sw.js')
+//       console.log('Service Worker registered:', registration)
 
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing
-        newWorker?.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('New content available, please refresh.')
-          }
-        })
-      })
-    } catch (err) {
-      console.error('Service Worker registration failed:', err)
-    }
-  })
-}
+//       registration.addEventListener('updatefound', () => {
+//         const newWorker = registration.installing
+//         newWorker?.addEventListener('statechange', () => {
+//           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+//             console.log('New content available, please refresh.')
+//           }
+//         })
+//       })
+//     } catch (err) {
+//       console.error('Service Worker registration failed:', err)
+//     }
+//   })
+// }

@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [
     vue(),
     vuetify({ autoImport: true }),
-    basicSsl(),
+    // basicSsl(), // Disabled for development to avoid mixed content issues
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
@@ -67,7 +67,7 @@ export default defineConfig({
         ]
       },
       devOptions: {
-        enabled: true
+        enabled: false
       }
     })
   ],
