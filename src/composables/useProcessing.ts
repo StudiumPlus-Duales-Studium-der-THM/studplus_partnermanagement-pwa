@@ -29,17 +29,12 @@ export function useProcessing() {
       return false
     }
 
-    const apiKey = authStore.neleAiApiKey
-    if (!apiKey) {
-      error.value = 'nele.ai API-Key nicht konfiguriert'
-      return false
-    }
-
     try {
       processingStep.value = 'Transkribiere Audio...'
       await voiceNotesStore.updateStatus(noteId, NoteStatus.TRANSCRIBING)
 
-      const transcription = await transcribeAudio(note.audioBlob, apiKey)
+      // Backend handles API key internally
+      const transcription = await transcribeAudio(note.audioBlob)
       await voiceNotesStore.setTranscription(noteId, transcription)
 
       return true
@@ -61,17 +56,12 @@ export function useProcessing() {
       return null
     }
 
-    const apiKey = authStore.neleAiApiKey
-    if (!apiKey) {
-      error.value = 'nele.ai API-Key nicht konfiguriert'
-      return null
-    }
-
     try {
       processingStep.value = 'Erkenne Unternehmen...'
 
       const companiesJson = companiesStore.getCompaniesJson()
-      const result = await matchCompany(note.transcription, companiesJson, apiKey)
+      // Backend handles API key internally
+      const result = await matchCompany(note.transcription, companiesJson)
 
       if (result.matched_company_id) {
         const company = companiesStore.getCompanyById(result.matched_company_id)
@@ -108,12 +98,6 @@ export function useProcessing() {
       return false
     }
 
-    const apiKey = authStore.neleAiApiKey
-    if (!apiKey) {
-      error.value = 'nele.ai API-Key nicht konfiguriert'
-      return false
-    }
-
     const company = companiesStore.getCompanyById(companyId)
     if (!company) {
       error.value = 'Unternehmen nicht gefunden'
@@ -133,12 +117,12 @@ export function useProcessing() {
         : 'Nicht angegeben'
 
       // Process text and extract conversation date in one API call
+      // Backend handles API key internally
       const result = await processText(
         note.transcription,
         company.name,
         contactName,
-        authStore.userName || 'Unbekannt',
-        apiKey
+        authStore.userName || 'Unbekannt'
       )
 
       // Save conversation date if found
@@ -215,6 +199,7 @@ export function useProcessing() {
       const titleDate = note.conversationDate || format(note.recordedAt, 'dd.MM.yyyy', { locale: de })
       const title = `[${company.shortName || company.name}] - ${titleDate} - ${authStore.userName}`
 
+      // Backend handles GitHub token internally
       const issue = await createIssue(
         title,
         issueBody,

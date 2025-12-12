@@ -18,8 +18,17 @@
           </v-card-title>
 
           <v-card-text class="pt-8">
-            <!-- Password Login -->
+            <!-- Username & Password Login -->
             <v-form @submit.prevent="login">
+              <v-text-field
+                v-model="username"
+                label="Benutzername"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                autofocus
+                class="mb-2"
+              ></v-text-field>
+
               <v-text-field
                 v-model="password"
                 label="Passwort"
@@ -29,7 +38,6 @@
                 @click:append-inner="showPassword = !showPassword"
                 :error-messages="errorMessage"
                 variant="outlined"
-                autofocus
               ></v-text-field>
 
               <v-btn
@@ -38,7 +46,7 @@
                 size="large"
                 color="primary"
                 :loading="isAuthenticating"
-                :disabled="!password"
+                :disabled="!username || !password"
                 class="mt-2"
               >
                 Anmelden
@@ -72,6 +80,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
+const username = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const isAuthenticating = ref(false)
@@ -79,19 +88,19 @@ const errorMessage = ref('')
 const failedAttempts = ref(0)
 
 const login = async () => {
-  if (!password.value || failedAttempts.value >= 3) return
+  if (!username.value || !password.value || failedAttempts.value >= 3) return
 
   isAuthenticating.value = true
   errorMessage.value = ''
 
   try {
-    const success = await authStore.login(password.value)
+    const success = await authStore.login(username.value, password.value)
 
     if (success) {
       router.push('/')
     } else {
       failedAttempts.value++
-      errorMessage.value = 'Falsches Passwort'
+      errorMessage.value = 'Falscher Benutzername oder Passwort'
 
       if (failedAttempts.value >= 3) {
         // Wait 1 minute before allowing more attempts
@@ -103,6 +112,7 @@ const login = async () => {
   } catch (error) {
     console.error('Login failed:', error)
     notificationStore.error('Anmeldung fehlgeschlagen')
+    failedAttempts.value++
   } finally {
     isAuthenticating.value = false
   }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Service Workers</title>
+</head>
+<body>
+    <h1>Service Worker Cleanup</h1>
+    <p id="status">Clearing service workers and cache...</p>
+    <button onclick="location.href='/'">Go to App</button>
+
+    <script>
+        (async function() {
+            const statusEl = document.getElementById('status');
+
+            try {
+                // Unregister all service workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        console.log('Unregistered:', registration);
+                    }
+                    statusEl.textContent = `Removed ${registrations.length} service worker(s).`;
+                }
+
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (let name of cacheNames) {
+                        await caches.delete(name);
+                        console.log('Deleted cache:', name);
+                    }
+                    statusEl.textContent += ` Cleared ${cacheNames.length} cache(s).`;
+                }
+
+                // Clear localStorage
+                localStorage.clear();
+
+                statusEl.textContent += ' Done! You can now go to the app.';
+                statusEl.style.color = 'green';
+
+                // Auto-redirect after 2 seconds
+                setTimeout(() => {
+                    location.href = '/';
+                }, 2000);
+
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = 'red';
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -27,14 +27,10 @@
               label="Name"
               prepend-inner-icon="mdi-account"
               variant="outlined"
+              readonly
+              hint="Der Name wird in der Backend-Konfiguration verwaltet"
+              persistent-hint
             ></v-text-field>
-            <v-btn
-              color="primary"
-              :loading="isSavingName"
-              @click="saveName"
-            >
-              Namen speichern
-            </v-btn>
           </v-card-text>
         </v-card>
 
@@ -210,7 +206,6 @@ const notificationStore = useNotificationStore()
 
 // Profile
 const userName = ref(authStore.userName || '')
-const isSavingName = ref(false)
 
 // Password
 const oldPassword = ref('')
@@ -220,19 +215,6 @@ const isChangingPassword = ref(false)
 
 // Data
 const isUpdatingCompanies = ref(false)
-
-// Profile
-const saveName = async () => {
-  isSavingName.value = true
-  try {
-    await authStore.updateUserName(userName.value)
-    notificationStore.success('Name gespeichert')
-  } catch {
-    notificationStore.error('Fehler beim Speichern')
-  } finally {
-    isSavingName.value = false
-  }
-}
 
 // Password
 const changePassword = async () => {

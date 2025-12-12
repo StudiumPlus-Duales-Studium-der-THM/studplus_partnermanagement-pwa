@@ -11,12 +11,6 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/onboarding',
-      name: 'onboarding',
-      component: () => import('@/views/OnboardingView.vue'),
-      meta: { requiresAuth: false }
-    },
-    {
       path: '/auth',
       name: 'auth',
       component: () => import('@/views/AuthView.vue'),
@@ -49,41 +43,20 @@ const router = createRouter({
   ]
 })
 
+// Track if auth store is initialized
+let authInitialized = false
+
 // Navigation guard
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Check if setup is complete
-  await authStore.checkSetupStatus()
-
-  if (!authStore.isSetupComplete && to.name !== 'onboarding') {
-    next({ name: 'onboarding' })
-    return
+  // Initialize auth store only once (load token from localStorage)
+  if (!authInitialized) {
+    await authStore.init()
+    authInitialized = true
   }
 
-  if (authStore.isSetupComplete && to.name === 'onboarding') {
-    next({ name: 'auth' })
-    return
-  }
-
-  // Try to restore session if not authenticated but session exists
-  if (!authStore.isAuthenticated) {
-    try {
-      const sessionPassword = sessionStorage.getItem('app_session_pw')
-      if (sessionPassword) {
-        const restored = await authStore.restoreSession(sessionPassword)
-        if (!restored) {
-          // Session restoration failed, clear invalid session data
-          sessionStorage.removeItem('app_session_pw')
-        }
-      }
-    } catch (error) {
-      console.error('Session restore error:', error)
-      sessionStorage.removeItem('app_session_pw')
-    }
-  }
-
-  // Check authentication
+  // Check authentication for protected routes
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'auth' })
     return
