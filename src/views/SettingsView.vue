@@ -41,45 +41,6 @@
             Sicherheit
           </v-card-title>
           <v-card-text>
-            <!-- Change Password -->
-            <v-expansion-panels class="mb-4">
-              <v-expansion-panel>
-                <v-expansion-panel-title>
-                  Passwort ändern
-                </v-expansion-panel-title>
-                <v-expansion-panel-text>
-                  <v-text-field
-                    v-model="oldPassword"
-                    label="Aktuelles Passwort"
-                    type="password"
-                    variant="outlined"
-                    class="mb-2"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="newPassword"
-                    label="Neues Passwort"
-                    type="password"
-                    variant="outlined"
-                    class="mb-2"
-                  ></v-text-field>
-                  <v-text-field
-                    v-model="confirmPassword"
-                    label="Passwort bestätigen"
-                    type="password"
-                    variant="outlined"
-                  ></v-text-field>
-                  <v-btn
-                    color="primary"
-                    :loading="isChangingPassword"
-                    @click="changePassword"
-                    class="mt-2"
-                  >
-                    Passwort ändern
-                  </v-btn>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-
             <!-- Auto-lock -->
             <v-select
               v-model="settingsStore.autoLockMinutes"
@@ -207,39 +168,8 @@ const notificationStore = useNotificationStore()
 // Profile
 const userName = ref(authStore.userName || '')
 
-// Password
-const oldPassword = ref('')
-const newPassword = ref('')
-const confirmPassword = ref('')
-const isChangingPassword = ref(false)
-
 // Data
 const isUpdatingCompanies = ref(false)
-
-// Password
-const changePassword = async () => {
-  if (newPassword.value !== confirmPassword.value) {
-    notificationStore.error('Passwörter stimmen nicht überein')
-    return
-  }
-
-  isChangingPassword.value = true
-  try {
-    const success = await authStore.changePassword(oldPassword.value, newPassword.value)
-    if (success) {
-      notificationStore.success('Passwort geändert')
-      oldPassword.value = ''
-      newPassword.value = ''
-      confirmPassword.value = ''
-    } else {
-      notificationStore.error('Falsches aktuelles Passwort')
-    }
-  } catch {
-    notificationStore.error('Fehler beim Ändern des Passworts')
-  } finally {
-    isChangingPassword.value = false
-  }
-}
 
 // Data
 const updateCompanies = async () => {
