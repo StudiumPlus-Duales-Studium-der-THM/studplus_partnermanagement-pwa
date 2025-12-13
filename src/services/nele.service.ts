@@ -37,8 +37,17 @@ export const matchCompany = async (
   companiesJson: string
 ): Promise<CompanyMatchResult> => {
   // Parse and extract only matching-relevant fields to reduce token usage
-  const companies = JSON.parse(companiesJson)
-  const compactCompanies = companies.companies?.map((c: any) => ({
+  let parsedCompanies: any[] = []
+  try {
+    const companies = JSON.parse(companiesJson)
+    parsedCompanies = Array.isArray(companies)
+      ? companies
+      : companies?.companies || []
+  } catch {
+    parsedCompanies = []
+  }
+
+  const compactCompanies = parsedCompanies.map((c: any) => ({
     id: c.id,
     name: c.name,
     shortName: c.shortName,
