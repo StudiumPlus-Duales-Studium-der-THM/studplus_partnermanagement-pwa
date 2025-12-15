@@ -206,7 +206,10 @@ export function useProcessing() {
         ['partner-kontakt', company.shortName.toLowerCase().replace(/\s+/g, '-')]
       )
 
-      await voiceNotesStore.setGitHubIssue(noteId, issue.html_url, issue.number)
+      const issueUrl = issue.html_url || issue.web_url || issue.url || ''
+      const issueNumber = issue.number ?? issue.iid ?? issue.id
+
+      await voiceNotesStore.setGitHubIssue(noteId, issueUrl, issueNumber)
 
       notificationStore.success('Issue erfolgreich erstellt!')
       return true

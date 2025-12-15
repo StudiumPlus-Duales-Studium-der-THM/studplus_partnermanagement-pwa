@@ -13,7 +13,7 @@ export const createIssue = async (
   labels: string[] = ['partner-kontakt']
 ): Promise<GitHubIssueResponse> => {
   const response = await apiService.getClient().post<GitHubIssueResponse>(
-    '/api/github/issues',
+    '/api/gitlab/issues',
     { title, body, labels }
   )
 

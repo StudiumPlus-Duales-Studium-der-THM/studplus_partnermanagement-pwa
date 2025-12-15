@@ -41,10 +41,13 @@ export interface GitHubIssueRequest {
 
 export interface GitHubIssueResponse {
   id: number
-  number: number
+  number?: number
+  iid?: number
   title: string
   body: string
-  html_url: string
+  html_url?: string
+  web_url?: string
+  url?: string
   state: string
   created_at: string
   updated_at: string

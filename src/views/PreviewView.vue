@@ -532,8 +532,10 @@ const sendDirectly = async () => {
     }
 
     const issue = await createIssue(title, issueBody, labels)
+    const issueUrl = issue.html_url || issue.web_url || issue.url || ''
+    const issueNumber = issue.number ?? issue.iid ?? issue.id
 
-    await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
+    await voiceNotesStore.setGitHubIssue(note.value.id, issueUrl, issueNumber)
     await voiceNotesStore.updateStatus(note.value.id, NoteStatus.SENT)
 
     notificationStore.success('Issue erfolgreich erstellt!')
@@ -583,8 +585,10 @@ const sendNote = async () => {
     }
 
     const issue = await createIssue(title, issueBody, labels)
+    const issueUrl = issue.html_url || issue.web_url || issue.url || ''
+    const issueNumber = issue.number ?? issue.iid ?? issue.id
 
-    await voiceNotesStore.setGitHubIssue(note.value.id, issue.html_url, issue.number)
+    await voiceNotesStore.setGitHubIssue(note.value.id, issueUrl, issueNumber)
 
     notificationStore.success('Issue erfolgreich erstellt!')
     router.push('/history')
