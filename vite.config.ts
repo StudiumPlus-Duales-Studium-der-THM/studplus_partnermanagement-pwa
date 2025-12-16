@@ -75,5 +75,16 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'vuetify-vendor': ['vuetify'],
+          'utils-vendor': ['date-fns', 'marked', 'crypto-js', 'nanoid', 'axios', 'dexie']
+        }
+      }
+    }
   }
 })
