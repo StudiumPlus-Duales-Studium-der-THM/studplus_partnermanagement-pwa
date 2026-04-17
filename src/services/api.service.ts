@@ -1,4 +1,9 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosError, AxiosInstance } from 'axios'
+import {
+  BackendErrorResponse,
+  isAuthError,
+  isUpstreamError
+} from '@/types/api'
 
 /**
  * API Service for backend communication
@@ -34,21 +39,59 @@ class ApiService {
       (error) => Promise.reject(error)
     )
 
-    // Response interceptor for error handling
+    // Response interceptor: zeigt User-freundliche Meldungen, vermeidet
+    // stummen Logout bei Upstream-Fehlern und sorgt dafür, dass bei
+    // Session-Verlust eine Meldung sichtbar bleibt (Router-Push statt
+    // Hard-Reload).
     this.client.interceptors.response.use(
       (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Token expired or invalid - clear token
-          this.clearToken()
-          // Redirect to login only if not already there
-          if (window.location.pathname !== '/auth') {
-            window.location.href = '/auth'
-          }
-        }
+      async (error: AxiosError<BackendErrorResponse>) => {
+        await this.handleErrorResponse(error)
         return Promise.reject(error)
       }
     )
+  }
+
+  private async handleErrorResponse(error: AxiosError<BackendErrorResponse>) {
+    const status = error.response?.status
+    const data = error.response?.data
+
+    // Upstream-Dienst (GitHub/GitLab/nele.ai) defekt → User bleibt eingeloggt.
+    if (status === 502 && isUpstreamError(data)) {
+      const { useNotificationStore } = await import('@/stores/notification')
+      useNotificationStore().error(data.message, 6000)
+      return
+    }
+
+    // Eigene Session abgelaufen/ungültig → Meldung zeigen, dann sanft zur Login-Seite.
+    const isSessionInvalid =
+      (status === 401 || status === 403) &&
+      isAuthError(data) &&
+      (data.error === 'unauthenticated' || data.error === 'token_invalid')
+
+    // Fallback für den Fall, dass das Backend (noch) keinen strukturierten
+    // Body liefert: plain 401 auf Nicht-Login-Route wird weiter als
+    // Session-Verlust behandelt — aber nur, wenn ein Token aktiv war.
+    const isLegacyUnauthorized =
+      status === 401 && !data && !!this.token
+
+    if (isSessionInvalid || isLegacyUnauthorized) {
+      const [{ useNotificationStore }, { useAuthStore }, routerModule] =
+        await Promise.all([
+          import('@/stores/notification'),
+          import('@/stores/auth'),
+          import('@/router')
+        ])
+      const message =
+        (data && 'message' in data && data.message) ||
+        'Sitzung abgelaufen, bitte neu anmelden.'
+      useNotificationStore().error(message, 5000)
+      await useAuthStore().logout()
+      const router = routerModule.default
+      if (router.currentRoute.value.name !== 'auth') {
+        router.push({ name: 'auth' })
+      }
+    }
   }
 
   setToken(token: string) {

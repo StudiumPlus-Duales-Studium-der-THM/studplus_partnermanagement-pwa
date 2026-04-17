@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import axios from 'axios'
 import { apiService } from '@/services/api.service'
+import type { BackendErrorResponse } from '@/types/api'
+
+export interface LoginResult {
+  success: boolean
+  message?: string
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
@@ -22,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Login with username and password
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
       const response = await apiService.getClient().post<{
         success: boolean
@@ -40,17 +47,28 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated.value = true
         lastActivity.value = Date.now()
 
-        // Store token and userName in localStorage
         apiService.setToken(response.data.token)
         localStorage.setItem('auth_userName', userName.value)
 
-        return true
+        return { success: true }
       }
 
-      return false
+      return { success: false, message: response.data.message }
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data as BackendErrorResponse | undefined
+        if (data && typeof data === 'object' && 'message' in data && data.message) {
+          return { success: false, message: data.message }
+        }
+        if (!error.response) {
+          return {
+            success: false,
+            message: 'Server nicht erreichbar. Netzwerkverbindung prüfen.'
+          }
+        }
+      }
       console.error('Login failed:', error)
-      return false
+      return { success: false, message: 'Anmeldung fehlgeschlagen' }
     }
   }
 

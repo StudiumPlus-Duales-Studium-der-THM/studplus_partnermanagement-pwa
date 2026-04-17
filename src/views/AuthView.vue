@@ -94,16 +94,15 @@ const login = async () => {
   errorMessage.value = ''
 
   try {
-    const success = await authStore.login(username.value, password.value)
+    const result = await authStore.login(username.value, password.value)
 
-    if (success) {
+    if (result.success) {
       router.push('/')
     } else {
       failedAttempts.value++
-      errorMessage.value = 'Falscher Benutzername oder Passwort'
+      errorMessage.value = result.message || 'Falscher Benutzername oder Passwort'
 
       if (failedAttempts.value >= 3) {
-        // Wait 1 minute before allowing more attempts
         setTimeout(() => {
           failedAttempts.value = 0
         }, 60000)
