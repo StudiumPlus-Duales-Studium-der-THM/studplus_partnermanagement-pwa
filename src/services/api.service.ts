@@ -12,6 +12,9 @@ import { isTokenExpired } from '@/utils/jwt'
 class ApiService {
   private client: AxiosInstance
   private token: string | null = null
+  // In-Flight-Guard für den Session-Expiry-Flow: parallele 401s sollen
+  // Notification/Logout/Redirect nur einmal auslösen.
+  private sessionExpiredPromise: Promise<void> | null = null
 
   constructor() {
     // Load token from localStorage on initialization
@@ -84,11 +87,19 @@ class ApiService {
       isAuthError(data) &&
       (data.error === 'unauthenticated' || data.error === 'token_invalid')
 
-    // Fallback für den Fall, dass das Backend (noch) keinen strukturierten
-    // Body liefert: plain 401 auf Nicht-Login-Route wird weiter als
-    // Session-Verlust behandelt — aber nur, wenn ein Token aktiv war.
+    // invalid_credentials stammt aus dem Login-Flow und darf keinen
+    // globalen Session-Logout triggern.
+    const isInvalidCredentials =
+      isAuthError(data) && data.error === 'invalid_credentials'
+
+    // Fallback für unstrukturierte 401/403-Antworten (z.B. { message: "Unauthorized" }
+    // oder HTML vom Proxy). Ohne das bliebe der Client mit stale Token in
+    // einer 401-Schleife hängen.
     const isLegacyUnauthorized =
-      status === 401 && !data && !!this.token
+      (status === 401 || status === 403) &&
+      !!this.token &&
+      !isSessionInvalid &&
+      !isInvalidCredentials
 
     if (isSessionInvalid || isLegacyUnauthorized) {
       const message =
@@ -98,24 +109,31 @@ class ApiService {
     }
   }
 
-  private async handleSessionExpired(message: string) {
-    const [{ useNotificationStore }, { useAuthStore }, routerModule] =
-      await Promise.all([
-        import('@/stores/notification'),
-        import('@/stores/auth'),
-        import('@/router')
-      ])
-    useNotificationStore().error(message, 5000)
-    await useAuthStore().logout()
-    const router = routerModule.default
-    if (router.currentRoute.value.name !== 'auth') {
-      router.push({ name: 'auth' })
-    }
+  private handleSessionExpired(message: string): Promise<void> {
+    if (this.sessionExpiredPromise) return this.sessionExpiredPromise
+    this.sessionExpiredPromise = (async () => {
+      const [{ useNotificationStore }, { useAuthStore }, routerModule] =
+        await Promise.all([
+          import('@/stores/notification'),
+          import('@/stores/auth'),
+          import('@/router')
+        ])
+      useNotificationStore().error(message, 5000)
+      await useAuthStore().logout()
+      const router = routerModule.default
+      if (router.currentRoute.value.name !== 'auth') {
+        router.push({ name: 'auth' })
+      }
+    })()
+    return this.sessionExpiredPromise
   }
 
   setToken(token: string) {
     this.token = token
     localStorage.setItem('auth_token', token)
+    // Neue Session → Guard zurücksetzen, damit zukünftige Session-Verluste
+    // wieder behandelt werden.
+    this.sessionExpiredPromise = null
   }
 
   clearToken() {
