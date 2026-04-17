@@ -22,7 +22,7 @@ Eine Progressive Web App (PWA) mit Backend-API für StudiumPlus-Direktoren zur A
 
 - **Sprachaufnahme**: Aufnehmen von Gesprächsnotizen mit dem Mikrofon
 - **KI-Transkription**: Automatische Transkription via nele.ai (azure-whisper)
-- **Textaufbereitung**: Professionelle Aufbereitung via nele.ai (azure-gpt-4o-mini)
+- **Textaufbereitung**: Professionelle Aufbereitung via nele.ai (azure-gpt-5-mini)
 - **GitHub Integration**: Automatische Erstellung von Issues im Repository
 - **Offline-Fähig**: PWA mit Service Worker für Offline-Nutzung
 - **Sicher**: JWT-Authentifizierung, Backend-geschützte API-Keys
