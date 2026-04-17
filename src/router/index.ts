@@ -52,8 +52,19 @@ router.beforeEach(async (to, _from, next) => {
 
   // Initialize auth store only once (load token from localStorage)
   if (!authInitialized) {
-    await authStore.init()
+    const { hadExpiredToken } = await authStore.init()
     authInitialized = true
+    if (hadExpiredToken) {
+      const { useNotificationStore } = await import('@/stores/notification')
+      useNotificationStore().error(
+        'Sitzung abgelaufen, bitte neu anmelden.',
+        5000
+      )
+      if (to.meta.requiresAuth) {
+        next({ name: 'auth' })
+        return
+      }
+    }
   }
 
   // Check authentication for protected routes

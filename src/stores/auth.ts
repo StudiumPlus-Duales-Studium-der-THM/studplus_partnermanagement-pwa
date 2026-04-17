@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import axios from 'axios'
 import { apiService } from '@/services/api.service'
 import type { BackendErrorResponse } from '@/types/api'
+import { isTokenExpired } from '@/utils/jwt'
 
 export interface LoginResult {
   success: boolean
@@ -15,17 +16,25 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const lastActivity = ref(Date.now())
 
-  // Initialize auth state from stored token
-  const init = async () => {
+  // Initialize auth state from stored token. Returns hadExpiredToken so the
+  // caller (router guard) can show the user a notification and redirect.
+  const init = async (): Promise<{ hadExpiredToken: boolean }> => {
     const storedToken = apiService.loadToken()
     const storedUserName = localStorage.getItem('auth_userName')
+
+    if (storedToken && isTokenExpired(storedToken)) {
+      apiService.clearToken()
+      localStorage.removeItem('auth_userName')
+      return { hadExpiredToken: true }
+    }
 
     if (storedToken) {
       token.value = storedToken
       userName.value = storedUserName
-      // Token is valid until backend says otherwise (401 response will clear it)
       isAuthenticated.value = true
     }
+
+    return { hadExpiredToken: false }
   }
 
   // Login with username and password

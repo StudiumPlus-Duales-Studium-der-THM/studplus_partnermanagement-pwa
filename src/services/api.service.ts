@@ -4,6 +4,7 @@ import {
   isAuthError,
   isUpstreamError
 } from '@/types/api'
+import { isTokenExpired } from '@/utils/jwt'
 
 /**
  * API Service for backend communication
@@ -28,10 +29,20 @@ class ApiService {
       }
     })
 
-    // Request interceptor to add auth token
+    // Request interceptor: client-side Token-Expiry-Check (proaktiv), dann
+    // Auth-Header setzen. Abgelaufener JWT → Session-Flow triggern und Request
+    // clientseitig abbrechen, damit kein toter Token aufs Backend geht.
     this.client.interceptors.request.use(
-      (config) => {
+      async (config) => {
         if (this.token) {
+          if (isTokenExpired(this.token)) {
+            await this.handleSessionExpired(
+              'Sitzung abgelaufen, bitte neu anmelden.'
+            )
+            return Promise.reject(
+              new axios.CanceledError('Token expired (client-side)')
+            )
+          }
           config.headers.Authorization = `Bearer ${this.token}`
         }
         return config
@@ -53,6 +64,10 @@ class ApiService {
   }
 
   private async handleErrorResponse(error: AxiosError<BackendErrorResponse>) {
+    // Vom Request-Interceptor clientseitig gecancelte Requests haben den
+    // Session-Flow bereits ausgelöst — nichts doppelt tun.
+    if (axios.isCancel(error)) return
+
     const status = error.response?.status
     const data = error.response?.data
 
@@ -76,21 +91,25 @@ class ApiService {
       status === 401 && !data && !!this.token
 
     if (isSessionInvalid || isLegacyUnauthorized) {
-      const [{ useNotificationStore }, { useAuthStore }, routerModule] =
-        await Promise.all([
-          import('@/stores/notification'),
-          import('@/stores/auth'),
-          import('@/router')
-        ])
       const message =
         (data && 'message' in data && data.message) ||
         'Sitzung abgelaufen, bitte neu anmelden.'
-      useNotificationStore().error(message, 5000)
-      await useAuthStore().logout()
-      const router = routerModule.default
-      if (router.currentRoute.value.name !== 'auth') {
-        router.push({ name: 'auth' })
-      }
+      await this.handleSessionExpired(message)
+    }
+  }
+
+  private async handleSessionExpired(message: string) {
+    const [{ useNotificationStore }, { useAuthStore }, routerModule] =
+      await Promise.all([
+        import('@/stores/notification'),
+        import('@/stores/auth'),
+        import('@/router')
+      ])
+    useNotificationStore().error(message, 5000)
+    await useAuthStore().logout()
+    const router = routerModule.default
+    if (router.currentRoute.value.name !== 'auth') {
+      router.push({ name: 'auth' })
     }
   }
 
