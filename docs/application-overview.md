@@ -31,7 +31,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
 
 ### APIs & Services
 - **nele.ai API (azure-whisper)** - Sprachtranskription (Audio → Text)
-- **nele.ai API (azure-gpt-4o-mini)** - Textaufbereitung und Company-Matching
+- **nele.ai API (azure-gpt-5-mini)** - Textaufbereitung und Company-Matching
 - **GitHub API** - Issue-Erstellung und Datenabfrage
 
 ### Sicherheit
@@ -78,7 +78,7 @@ Die StudiumPlus Partner-Notizen App ist eine Progressive Web Application (PWA), 
         │  - azure-      │  - Issues          │
         │    whisper     │  - Contents        │
         │  - azure-gpt-  │                    │
-        │    4o-mini     │                    │
+        │    5-mini      │                    │
         └─────────────────────────────────────┘
 ```
 

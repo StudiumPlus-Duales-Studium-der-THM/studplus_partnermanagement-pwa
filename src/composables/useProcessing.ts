@@ -104,6 +104,9 @@ export function useProcessing() {
       return false
     }
 
+    isProcessing.value = true
+    error.value = null
+
     try {
       processingStep.value = 'Bereite Text auf...'
       await voiceNotesStore.updateStatus(noteId, NoteStatus.PROCESSING)
@@ -138,6 +141,9 @@ export function useProcessing() {
       error.value = 'Textaufbereitung fehlgeschlagen'
       await voiceNotesStore.updateStatus(noteId, NoteStatus.ERROR, 'Textaufbereitung fehlgeschlagen')
       return false
+    } finally {
+      isProcessing.value = false
+      processingStep.value = ''
     }
   }
 

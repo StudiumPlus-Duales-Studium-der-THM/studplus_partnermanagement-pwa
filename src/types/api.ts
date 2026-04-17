@@ -82,3 +82,45 @@ export interface APIError {
   status?: number
   code?: string
 }
+
+// Strukturierte Backend-Error-Responses (must match backend types)
+export type UpstreamService = 'github' | 'gitlab' | 'nele'
+
+export interface UpstreamErrorResponse {
+  error: 'upstream_unavailable'
+  service: UpstreamService
+  upstreamStatus: number
+  message: string
+}
+
+export interface AuthErrorResponse {
+  error: 'unauthenticated' | 'token_invalid' | 'invalid_credentials'
+  message: string
+}
+
+export interface GenericErrorResponse {
+  error: string
+  message?: string
+}
+
+export type BackendErrorResponse =
+  | UpstreamErrorResponse
+  | AuthErrorResponse
+  | GenericErrorResponse
+
+export const isUpstreamError = (
+  data: unknown
+): data is UpstreamErrorResponse =>
+  !!data &&
+  typeof data === 'object' &&
+  (data as { error?: unknown }).error === 'upstream_unavailable'
+
+export const isAuthError = (data: unknown): data is AuthErrorResponse => {
+  if (!data || typeof data !== 'object') return false
+  const err = (data as { error?: unknown }).error
+  return (
+    err === 'unauthenticated' ||
+    err === 'token_invalid' ||
+    err === 'invalid_credentials'
+  )
+}

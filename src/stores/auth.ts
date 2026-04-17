@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import axios from 'axios'
 import { apiService } from '@/services/api.service'
+import type { BackendErrorResponse } from '@/types/api'
+import { isTokenExpired } from '@/utils/jwt'
+
+export interface LoginResult {
+  success: boolean
+  message?: string
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
@@ -8,21 +16,29 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(null)
   const lastActivity = ref(Date.now())
 
-  // Initialize auth state from stored token
-  const init = async () => {
+  // Initialize auth state from stored token. Returns hadExpiredToken so the
+  // caller (router guard) can show the user a notification and redirect.
+  const init = async (): Promise<{ hadExpiredToken: boolean }> => {
     const storedToken = apiService.loadToken()
     const storedUserName = localStorage.getItem('auth_userName')
+
+    if (storedToken && isTokenExpired(storedToken)) {
+      apiService.clearToken()
+      localStorage.removeItem('auth_userName')
+      return { hadExpiredToken: true }
+    }
 
     if (storedToken) {
       token.value = storedToken
       userName.value = storedUserName
-      // Token is valid until backend says otherwise (401 response will clear it)
       isAuthenticated.value = true
     }
+
+    return { hadExpiredToken: false }
   }
 
   // Login with username and password
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
       const response = await apiService.getClient().post<{
         success: boolean
@@ -40,17 +56,28 @@ export const useAuthStore = defineStore('auth', () => {
         isAuthenticated.value = true
         lastActivity.value = Date.now()
 
-        // Store token and userName in localStorage
         apiService.setToken(response.data.token)
         localStorage.setItem('auth_userName', userName.value)
 
-        return true
+        return { success: true }
       }
 
-      return false
+      return { success: false, message: response.data.message }
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data as BackendErrorResponse | undefined
+        if (data && typeof data === 'object' && 'message' in data && data.message) {
+          return { success: false, message: data.message }
+        }
+        if (!error.response) {
+          return {
+            success: false,
+            message: 'Server nicht erreichbar. Netzwerkverbindung prüfen.'
+          }
+        }
+      }
       console.error('Login failed:', error)
-      return false
+      return { success: false, message: 'Anmeldung fehlgeschlagen' }
     }
   }
 

@@ -95,7 +95,7 @@ Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, kein zusätzlicher Text.`
         }
       ],
       temperature: 0.3,
-      max_tokens: 200
+      max_tokens: 1000
     }
   )
 
