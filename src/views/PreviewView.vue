@@ -96,6 +96,7 @@
                   block
                   color="secondary"
                   :loading="isProcessing"
+                  :disabled="isProcessing || isSending"
                   @click="processText"
                 >
                   <v-icon start>mdi-cog</v-icon>
@@ -108,7 +109,7 @@
                   color="primary"
                   variant="tonal"
                   :loading="isSending"
-                  :disabled="!contactSelection"
+                  :disabled="!contactSelection || isProcessing || isSending"
                   @click="sendDirectly"
                 >
                   <v-icon start>mdi-send-outline</v-icon>
@@ -153,7 +154,7 @@
             <v-btn
               color="primary"
               :loading="isSending"
-              :disabled="!canSend"
+              :disabled="!canSend || isProcessing || isSending"
               @click="sendNote"
             >
               <v-icon start>mdi-send</v-icon>
@@ -393,6 +394,8 @@ const processText = async () => {
     }
   } else {
     // Custom company - process with custom names
+    isProcessing.value = true
+    processingStep.value = 'Bereite Text auf...'
     try {
       await voiceNotesStore.updateStatus(note.value.id, NoteStatus.PROCESSING)
 
@@ -421,6 +424,9 @@ const processText = async () => {
       console.error('Processing failed:', err)
       notificationStore.error('Textaufbereitung fehlgeschlagen')
       await voiceNotesStore.updateStatus(note.value.id, NoteStatus.ERROR, 'Textaufbereitung fehlgeschlagen')
+    } finally {
+      isProcessing.value = false
+      processingStep.value = ''
     }
   }
 }
